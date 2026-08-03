@@ -33,19 +33,20 @@ ON DUPLICATE KEY UPDATE
   updated_at = NOW();
 
 INSERT INTO project_databases
-  (project_code, database_code, questionnaire_name, sample_ids_sql,
+  (project_code, database_code, questionnaire_name, table_preface, sample_ids_sql,
    search_column, search_id1_start, search_id1_length, search_id2_start, search_id2_length, search_id2_mode,
    raw_database, compare_database, round_field,
    round1_value, round2_value, completed_round_value, compare_enabled,
    description, status, is_prepared, prepared_at, display_order, created_by, updated_by)
 VALUES
-  ('tcls2025', 'tcls2025_ch1', 'Children Baseline 2025 CH1', NULL,
+  ('tcls2025', 'tcls2025_ch1', 'Children Baseline 2025 CH1', 'preface_ch', NULL,
    NULL, 1, 12, 13, NULL, 'exact',
    'tcls2025_ch1', 'tcls2025_ch1_cmp', 'round',
    '1', '2', '0', 1,
    'Children Baseline 2025 CH1', 'prepared', 1, NOW(), 10, 'seed', 'seed')
 ON DUPLICATE KEY UPDATE
   questionnaire_name = VALUES(questionnaire_name),
+  table_preface = VALUES(table_preface),
   sample_ids_sql = VALUES(sample_ids_sql),
   search_column = VALUES(search_column),
   search_id1_start = VALUES(search_id1_start),

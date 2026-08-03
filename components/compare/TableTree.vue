@@ -45,9 +45,9 @@ function statusIcon(status) {
     return '/'
   }
   if (tone === 'empty') {
-    return '☒'
+    return '✖'
   }
-  return '✖'
+  return '☒'
 }
 
 function statusTitle(status) {

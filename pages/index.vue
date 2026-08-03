@@ -46,7 +46,7 @@
           @select-table="selectTable"
           @toggle-primary-key="togglePrimaryKey"
           @refresh-preview="refreshPreview"
-          @prepare="openConfirm"
+          @prepare="prepareCompare"
         />
 
         <aside class="side-column">
@@ -99,21 +99,6 @@
         </aside>
       </div>
 
-      <CommonConfirmDialog
-        :open="confirmOpen"
-        title="ยืนยันการเตรียมข้อมูล Compare"
-        confirm-text="ยืนยันและเริ่ม Compare"
-        @close="confirmOpen = false"
-        @confirm="confirmPrepare"
-      >
-        <p>ระบบจะตรวจตาราง <strong>{{ preview?.targetFullName }}</strong> และคัดลอกเฉพาะข้อมูล <strong>round = 1</strong> จากฐานต้นทางไปยังฐาน <strong>_cmp</strong></p>
-        <ul class="confirm-list">
-          <li>ไม่แก้ไขหรือลบข้อมูลในฐานต้นทาง `_raw`</li>
-          <li>ใช้ Transaction และ Rollback เมื่อเกิดข้อผิดพลาดใน PHP API จริง</li>
-          <li>บันทึกผลและ Audit Log เฉพาะเมื่อผู้ใช้กด Submit</li>
-        </ul>
-      </CommonConfirmDialog>
-
       <div v-if="toast" class="toast">{{ toast }}</div>
     </template>
   </main>
@@ -161,7 +146,6 @@ const {
 } = useCompareWorkflow()
 
 const route = useRoute()
-const confirmOpen = ref(false)
 const resolvingProject = ref(false)
 const inlineTables = ref([])
 const inlineTablesLoading = ref(false)
@@ -216,21 +200,6 @@ const resultRows = computed(() => [
   { label: '#rows in ROUND2', value: preview.value?.round2Count ?? '-' },
   { label: '#rows intersection', value: preview.value?.intersectionCount ?? '-' }
 ])
-
-async function openConfirm() {
-  const compareStatus = preview.value?.compareStatus || preview.value?.compare_status || ''
-  if (compareStatus === 'complete') {
-    await prepareCompare()
-    return
-  }
-
-  confirmOpen.value = true
-}
-
-async function confirmPrepare() {
-  confirmOpen.value = false
-  await prepareCompare()
-}
 
 async function resolveProjectFromUrl() {
   if (!isAuthenticated.value || resolvingProject.value) {

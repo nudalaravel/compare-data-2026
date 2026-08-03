@@ -160,6 +160,10 @@
             <input v-model="databaseForm.questionnaire_name" :disabled="!canUseDatabaseTools" placeholder="เช่น แบบสอบถามเด็ก CH1">
           </label>
           <label>
+            Preface Table
+            <input v-model="databaseForm.table_preface" :disabled="!canUseDatabaseTools" placeholder="preface_ch">
+          </label>
+          <label>
             Raw Database
             <input v-model="databaseForm.raw_database" :disabled="!canUseDatabaseTools" placeholder="tcls2027_ch">
           </label>
@@ -260,6 +264,7 @@
               <tr>
                 <th>Database Code</th>
                 <th>ชื่อแบบ</th>
+                <th>Preface</th>
                 <th>Raw</th>
                 <th>Compare</th>
                 <th>Round</th>
@@ -273,6 +278,7 @@
               <tr v-for="database in adminDatabases" :key="database.database_id" :class="{ selected: database.database_id === selectedDatabaseId }">
                 <td>{{ database.database_code }}</td>
                 <td>{{ database.questionnaire_name || '-' }}</td>
+                <td>{{ database.table_preface || database.tablePreface || '-' }}</td>
                 <td>{{ database.raw_database }}</td>
                 <td>{{ database.compare_database }}</td>
                 <td>{{ database.round1_value || '1' }}/{{ database.round2_value || '2' }}/{{ database.completed_round_value || '0' }}</td>
@@ -284,7 +290,7 @@
                 </td>
               </tr>
               <tr v-if="!adminLoading && !adminDatabases.length">
-                <td colspan="9">ยังไม่มีฐานข้อมูลใน Project นี้</td>
+                <td colspan="10">ยังไม่มีฐานข้อมูลใน Project นี้</td>
               </tr>
             </tbody>
           </table>
@@ -579,6 +585,7 @@ const databaseForm = reactive({
   project_code: '',
   database_code: '',
   questionnaire_name: '',
+  table_preface: '',
   sample_ids_sql: '',
   search_column: '',
   search_id1_start: 1,
@@ -952,6 +959,7 @@ function resetDatabaseForm() {
     project_code: selectedProjectCode.value,
     database_code: '',
     questionnaire_name: '',
+    table_preface: '',
     sample_ids_sql: '',
     search_column: '',
     search_id1_start: 1,
@@ -978,6 +986,7 @@ function fillDatabaseForm(database) {
     project_code: database.project_code,
     database_code: database.database_code,
     questionnaire_name: database.questionnaire_name || '',
+    table_preface: database.table_preface || database.tablePreface || '',
     sample_ids_sql: database.sample_ids_sql || '',
     search_column: database.search_column || '',
     search_id1_start: database.search_id1_start || 1,

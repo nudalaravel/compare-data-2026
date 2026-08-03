@@ -349,6 +349,8 @@ function admin_database_payload(array $row): array
         'database_code' => $row['database_code'],
         'questionnaire_name' => $row['questionnaire_name'] ?? '',
         'questionnaireName' => $row['questionnaire_name'] ?? '',
+        'table_preface' => $row['table_preface'] ?? '',
+        'tablePreface' => $row['table_preface'] ?? '',
         'sample_ids_sql' => $row['sample_ids_sql'] ?? '',
         'sampleIdsSql' => $row['sample_ids_sql'] ?? '',
         'search_column' => $row['search_column'] ?? '',

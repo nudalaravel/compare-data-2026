@@ -9,6 +9,7 @@
 
 2. `project_databases`
    เก็บชุดฐานข้อมูลของแต่ละโปรเจค หนึ่งโปรเจคมีหลายฐานได้ เช่น CH1, HH, School
+   ระบุ `table_preface` ของแต่ละฐานเพื่อใช้ดึงผู้บันทึกแบบในรายงาน เช่น `preface_ch`, `preface_hh`
 
 3. `project_tables`
    เก็บตารางที่เปิดให้ compare ในแต่ละฐาน พร้อม primary key
@@ -55,6 +56,7 @@ Content-Type: application/json
   "project_code": "cct2025-key",
   "database_code": "cct2025_ch1",
   "questionnaire_name": "แบบสอบถามเด็ก CH1",
+  "table_preface": "preface_ch",
   "raw_database": "cct2025_ch1",
   "compare_database": "cct2025_ch1_cmp",
   "sample_ids_sql": "SELECT 'cct2025-key' AS project_code, 'cct2025_ch1' AS database_code, CID AS id FROM cct2025_ch1.table0 UNION SELECT 'cct2025-key', 'cct2025_ch1', CONCAT(CID, member_id) FROM cct2025_ch1.table1",
@@ -207,3 +209,5 @@ Content-Type: application/json
 2. `project_databases`
 3. `project_tables`
 4. `project_table_hidden_columns` เฉพาะกรณีมีตัวแปรที่ต้องซ่อน
+
+เป้าหมายสำคัญเลยของระบบนี้ เราจะไม่เเตะต้องข้อมูล Raw data เด็ดขาด

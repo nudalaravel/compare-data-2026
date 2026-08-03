@@ -42,6 +42,7 @@ foreach ($tables as $table) {
     $intersectionCmpCount = (int)($preview['intersectionCmpCount'] ?? $preview['intersection_cmp_count'] ?? 0);
     $compareStatus = (string)($preview['compareStatus'] ?? $preview['compare_status'] ?? 'not_prepared');
     $hasBothRounds = empty($preview['error']) && $round1Count > 0 && $round2Count > 0;
+    $hasAnyRound = empty($preview['error']) && ($round1Count > 0 || $round2Count > 0);
     $hasCompareData = $compareScopeCount > 0;
     $rawRoundCountsMatch = $round1Count === $round2Count;
     $cmpScopeMatchesRound2 = $intersectionCmpCount === $round2Count || $compareScopeCount === $round2Count;
@@ -60,7 +61,7 @@ foreach ($tables as $table) {
         $statusTone = 'danger';
         $statusIcon = '✖';
         $statusText = (string)$preview['error'];
-    } elseif (!$hasBothRounds) {
+    } elseif (!$hasAnyRound) {
         $statusTone = 'empty';
         $statusIcon = '☒';
         $statusText = 'ไม่มีข้อมูลทั้งสองรอบ';
@@ -73,6 +74,11 @@ foreach ($tables as $table) {
         $statusIcon = '✓';
         $statusText = 'Compare แล้ว';
         $isSelectable = true;
+    } elseif ($hasCompareData && $comparePendingCount > 0) {
+        $statusTone = 'danger';
+        $statusIcon = '✖';
+        $statusText = 'ข้อมูลทั้งสองรอบ ยังไม่ตรงกัน';
+        $isSelectable = $hasCompleteRoundPair;
     } elseif ($pendingCmpReady || ($compareStatus === 'pending' && $hasCompleteRoundPair)) {
         $statusTone = 'warning';
         $statusIcon = '▲';
@@ -97,6 +103,8 @@ foreach ($tables as $table) {
         'primaryKeys' => $ctx['primaryKeys'],
         'primary_keys' => $ctx['primaryKeys'],
         'selectable' => $isSelectable,
+        'hasAnyRound' => $hasAnyRound,
+        'has_any_round' => $hasAnyRound,
         'hasBothRounds' => $hasBothRounds,
         'has_both_rounds' => $hasBothRounds,
         'hasCompleteRoundPair' => $hasCompleteRoundPair,

@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS project_databases (
   project_code VARCHAR(64) NOT NULL COMMENT 'อ้างอิง projects.project_code',
   database_code VARCHAR(128) NOT NULL COMMENT 'รหัสชุดแบบสอบถาม เช่น tcls2027_ch',
   questionnaire_name VARCHAR(255) NULL COMMENT 'ชื่อแบบสอบถาม ถ้ามี เช่น แบบสอบถามเด็ก CH1',
+  table_preface VARCHAR(128) NULL COMMENT 'ชื่อตาราง preface ของฐานนี้ สำหรับดึงผู้บันทึกแบบ เช่น preface_ch',
   sample_ids_sql LONGTEXT NULL COMMENT 'SQL สำหรับดึงตัวอย่างรหัส ต้องคืน project_code, database_code, id',
   search_column VARCHAR(128) NULL COMMENT 'Column used for Compare search scope. If empty, primary-key concat is used.',
   search_id1_start INT NOT NULL DEFAULT 1 COMMENT '1-based SUBSTRING start for searchId1',
@@ -107,7 +108,8 @@ END//
 DELIMITER ;
 
 CALL add_admin_config_column('project_databases', 'questionnaire_name', 'VARCHAR(255) NULL COMMENT ''ชื่อแบบสอบถาม ถ้ามี เช่น แบบสอบถามเด็ก CH1'' AFTER database_code');
-CALL add_admin_config_column('project_databases', 'sample_ids_sql', 'LONGTEXT NULL COMMENT ''SQL สำหรับดึงตัวอย่างรหัส ต้องคืน project_code, database_code, id'' AFTER questionnaire_name');
+CALL add_admin_config_column('project_databases', 'table_preface', 'VARCHAR(128) NULL COMMENT ''ชื่อตาราง preface ของฐานนี้ สำหรับดึงผู้บันทึกแบบ เช่น preface_ch'' AFTER questionnaire_name');
+CALL add_admin_config_column('project_databases', 'sample_ids_sql', 'LONGTEXT NULL COMMENT ''SQL สำหรับดึงตัวอย่างรหัส ต้องคืน project_code, database_code, id'' AFTER table_preface');
 CALL add_admin_config_column('project_databases', 'search_column', 'VARCHAR(128) NULL COMMENT ''Column used for Compare search scope. If empty, primary-key concat is used.'' AFTER sample_ids_sql');
 CALL add_admin_config_column('project_databases', 'search_id1_start', 'INT NOT NULL DEFAULT 1 COMMENT ''1-based SUBSTRING start for searchId1'' AFTER search_column');
 CALL add_admin_config_column('project_databases', 'search_id1_length', 'INT NOT NULL DEFAULT 12 COMMENT ''SUBSTRING length for searchId1'' AFTER search_id1_start');

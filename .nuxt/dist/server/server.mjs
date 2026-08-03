@@ -458,17 +458,17 @@ const _routes = [
     name: "list",
     path: "/list",
     meta: __nuxt_page_meta$1 || {},
-    component: () => import("./_nuxt/list-BWiC4KAU.js")
+    component: () => import("./_nuxt/list-DHOfi4eb.js")
   },
   {
     name: "admin",
     path: "/admin",
-    component: () => import("./_nuxt/admin-DoLactuq.js")
+    component: () => import("./_nuxt/admin-2wmvq8IE.js")
   },
   {
     name: "index",
     path: "/",
-    component: () => import("./_nuxt/index-DUI1LL9G.js")
+    component: () => import("./_nuxt/index-DgOwGUEY.js")
   },
   {
     name: "login",
@@ -479,7 +479,7 @@ const _routes = [
   {
     name: "report",
     path: "/report",
-    component: () => import("./_nuxt/report-fr-Kl507.js")
+    component: () => import("./_nuxt/report-CgsboPeg.js")
   }
 ];
 const _wrapInTransition = (props, children) => {
@@ -957,7 +957,7 @@ const plugins = [
   components_plugin_z4hgvsiddfKkfXTP6M8M4zG5Cb7sGnDhcryKVM45Di4
 ];
 const layouts = {
-  default: defineAsyncComponent(() => import("./_nuxt/default-Dwax1hUJ.js").then((m) => m.default || m))
+  default: defineAsyncComponent(() => import("./_nuxt/default-DgzoYpWX.js").then((m) => m.default || m))
 };
 const routeRulesMatcher = _routeRulesMatcher;
 const LayoutLoader = defineComponent({

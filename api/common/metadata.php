@@ -101,11 +101,13 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
         && metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'completed_round_value');
     $hasCompareEnabled = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'compare_enabled');
     $hasQuestionnaireName = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'questionnaire_name');
+    $hasTablePreface = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'table_preface');
     $hasSearchScopeConfig = metadata_project_search_config_columns_exist($mysqli);
     $roundSelect = $hasRoundConfig
         ? 'd.round1_value, d.round2_value, d.completed_round_value'
         : "'1' AS round1_value, '2' AS round2_value, '0' AS completed_round_value";
     $questionnaireSelect = $hasQuestionnaireName ? 'd.questionnaire_name' : 'NULL AS questionnaire_name';
+    $tablePrefaceSelect = $hasTablePreface ? 'd.table_preface' : 'NULL AS table_preface';
     $searchScopeSelect = $hasSearchScopeConfig
         ? 'd.search_column, d.search_id1_start, d.search_id1_length, d.search_id2_start, d.search_id2_length, d.search_id2_mode'
         : "NULL AS search_column, 1 AS search_id1_start, 12 AS search_id1_length, 13 AS search_id2_start, NULL AS search_id2_length, 'exact' AS search_id2_mode";
@@ -119,6 +121,7 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
                    d.round_field,
                    ' . $roundSelect . ',
                    ' . $questionnaireSelect . ',
+                   ' . $tablePrefaceSelect . ',
                    ' . $searchScopeSelect . ',
                    d.description,
                    d.status AS database_status,
@@ -153,6 +156,10 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
         $roundField = assert_identifier((string)$row['round_field']);
         $tableCount = (int)($row['table_count'] ?? 0);
         $questionnaireName = trim((string)($row['questionnaire_name'] ?? ''));
+        $tablePreface = trim((string)($row['table_preface'] ?? ''));
+        if ($tablePreface !== '') {
+            $tablePreface = assert_identifier($tablePreface);
+        }
         $displayName = $questionnaireName !== '' ? $questionnaireName : ($row['description'] ?: $databaseCode);
 
         return [
@@ -165,6 +172,8 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
             'database_code' => $databaseCode,
             'display_name' => $displayName,
             'questionnaire_name' => $questionnaireName,
+            'table_preface' => $tablePreface,
+            'tablePreface' => $tablePreface,
             'project_name' => $row['project_name'],
             'raw_database' => $rawDatabase,
             'cmp_database' => $cmpDatabase,
@@ -207,12 +216,14 @@ function fetch_admin_project(mysqli $mysqli, string $projectId, bool $activeOnly
         && metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'completed_round_value');
     $hasCompareEnabled = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'compare_enabled');
     $hasQuestionnaireName = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'questionnaire_name');
+    $hasTablePreface = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'table_preface');
     $hasSampleIdsSql = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'sample_ids_sql');
     $hasSearchScopeConfig = metadata_project_search_config_columns_exist($mysqli);
     $roundSelect = $hasRoundConfig
         ? 'd.round1_value, d.round2_value, d.completed_round_value'
         : "'1' AS round1_value, '2' AS round2_value, '0' AS completed_round_value";
     $questionnaireSelect = $hasQuestionnaireName ? 'd.questionnaire_name' : 'NULL AS questionnaire_name';
+    $tablePrefaceSelect = $hasTablePreface ? 'd.table_preface' : 'NULL AS table_preface';
     $sampleIdsSqlSelect = $hasSampleIdsSql ? 'd.sample_ids_sql' : 'NULL AS sample_ids_sql';
     $searchScopeSelect = $hasSearchScopeConfig
         ? 'd.search_column, d.search_id1_start, d.search_id1_length, d.search_id2_start, d.search_id2_length, d.search_id2_mode'
@@ -237,6 +248,7 @@ function fetch_admin_project(mysqli $mysqli, string $projectId, bool $activeOnly
                    d.round_field,
                    ' . $roundSelect . ',
                    ' . $questionnaireSelect . ',
+                   ' . $tablePrefaceSelect . ',
                    ' . $sampleIdsSqlSelect . ',
                    ' . $searchScopeSelect . ',
                    d.description,
@@ -279,6 +291,10 @@ function fetch_admin_project(mysqli $mysqli, string $projectId, bool $activeOnly
 
     $databaseCode = assert_identifier((string)$row['database_code']);
     $questionnaireName = trim((string)($row['questionnaire_name'] ?? ''));
+    $tablePreface = trim((string)($row['table_preface'] ?? ''));
+    if ($tablePreface !== '') {
+        $tablePreface = assert_identifier($tablePreface);
+    }
     $displayName = $questionnaireName !== '' ? $questionnaireName : ($row['description'] ?: $databaseCode);
 
     return [
@@ -290,6 +306,8 @@ function fetch_admin_project(mysqli $mysqli, string $projectId, bool $activeOnly
         'database_code' => $databaseCode,
         'display_name' => $displayName,
         'questionnaire_name' => $questionnaireName,
+        'table_preface' => $tablePreface,
+        'tablePreface' => $tablePreface,
         'sample_ids_sql' => (string)($row['sample_ids_sql'] ?? ''),
         'project_name' => $row['project_name'],
         'raw_database' => assert_identifier((string)$row['raw_database']),

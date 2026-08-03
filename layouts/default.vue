@@ -12,7 +12,8 @@
           >
             {{ item.label }}
           </NuxtLink>
-          <button type="button" @click="handleLogout">ออกจากระบบ</button>
+          <button v-if="user" type="button" @click="handleLogout">ออกจากระบบ</button>
+          <NuxtLink v-else to="/login">เข้าสู่ระบบ</NuxtLink>
         </nav>
       </div>
     </header>

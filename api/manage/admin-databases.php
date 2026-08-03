@@ -166,6 +166,13 @@ try {
                     ?? ($before['questionnaire_name'] ?? ''))),
         255
     );
+    $tablePreface = admin_nullable_string(
+        $body['table_preface'] ?? ($body['tablePreface'] ?? ($before['table_preface'] ?? '')),
+        128
+    );
+    if ($tablePreface !== null) {
+        $tablePreface = assert_identifier($tablePreface);
+    }
     $sampleIdsSql = admin_nullable_string(
         $body['sample_ids_sql'] ?? ($body['sampleIdsSql'] ?? ($before['sample_ids_sql'] ?? '')),
         0
@@ -303,6 +310,15 @@ try {
         $nameStmt = $mysqli->prepare($nameSql);
         $nameStmt->bind_param('si', $questionnaireName, $databaseId);
         $nameStmt->execute();
+    }
+
+    if (metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'table_preface')) {
+        $prefaceSql = 'UPDATE ' . admin_config_table('project_databases') . '
+                       SET table_preface = ?
+                       WHERE database_id = ?';
+        $prefaceStmt = $mysqli->prepare($prefaceSql);
+        $prefaceStmt->bind_param('si', $tablePreface, $databaseId);
+        $prefaceStmt->execute();
     }
 
     if (metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'sample_ids_sql')) {

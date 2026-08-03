@@ -72,11 +72,11 @@ function compare_preview(
     $intersectionCmpCount = 0;
     if ($cmpTableExists) {
         if ($includeSqlDebug) {
-            $comparePendingCount = count_round_rows($mysqli, $cmpTable, $roundField, $searchExpr, $roundOne, $operator, $needle, $comparePendingDebug);
+            $comparePendingCount = count_non_completed_rows($mysqli, $cmpTable, $roundField, $searchExpr, $completedRound, $operator, $needle, $comparePendingDebug);
             $compareCompletedCount = count_round_rows($mysqli, $cmpTable, $roundField, $searchExpr, $completedRound, $operator, $needle, $compareCompletedDebug);
             $intersectionCmpCount = count_cmp_scope_rows($mysqli, $ctx, $searchMode, $searchId, $intersectionCmpDebug);
         } else {
-            $comparePendingCount = count_round_rows($mysqli, $cmpTable, $roundField, $searchExpr, $roundOne, $operator, $needle);
+            $comparePendingCount = count_non_completed_rows($mysqli, $cmpTable, $roundField, $searchExpr, $completedRound, $operator, $needle);
             $compareCompletedCount = count_round_rows($mysqli, $cmpTable, $roundField, $searchExpr, $completedRound, $operator, $needle);
             $intersectionCmpCount = count_cmp_scope_rows($mysqli, $ctx, $searchMode, $searchId);
         }
@@ -194,6 +194,29 @@ function count_round_rows(
 
     $stmt = $mysqli->prepare($sql);
     $stmt->bind_param('ss', $roundValue, $needle);
+    $stmt->execute();
+
+    return (int)$stmt->get_result()->fetch_assoc()['total'];
+}
+
+function count_non_completed_rows(
+    mysqli $mysqli,
+    string $table,
+    string $roundField,
+    string $keyExpr,
+    string $completedRoundValue,
+    string $operator,
+    string $needle,
+    ?array &$debugQuery = null
+): int
+{
+    $sql = "SELECT COUNT(*) AS total FROM {$table} r WHERE r.{$roundField} <> ? AND {$keyExpr} {$operator} ?";
+    if ($debugQuery !== null) {
+        $debugQuery = compare_debug_sql_query($sql, [$completedRoundValue, $needle]);
+    }
+
+    $stmt = $mysqli->prepare($sql);
+    $stmt->bind_param('ss', $completedRoundValue, $needle);
     $stmt->execute();
 
     return (int)$stmt->get_result()->fetch_assoc()['total'];

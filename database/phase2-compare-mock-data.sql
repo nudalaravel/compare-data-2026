@@ -28,19 +28,20 @@ ON DUPLICATE KEY UPDATE
   updated_at = NOW();
 
 INSERT INTO project_databases
-  (project_code, database_code, questionnaire_name, sample_ids_sql,
+  (project_code, database_code, questionnaire_name, table_preface, sample_ids_sql,
    search_column, search_id1_start, search_id1_length, search_id2_start, search_id2_length, search_id2_mode,
    raw_database, compare_database, round_field,
    round1_value, round2_value, completed_round_value, compare_enabled,
    description, status, is_prepared, prepared_at, display_order, created_by, updated_by)
 VALUES
-  ('phase2demo', 'phase2demo_ch', 'Phase 2 Demo Questionnaire', NULL,
+  ('phase2demo', 'phase2demo_ch', 'Phase 2 Demo Questionnaire', 'preface_ch', NULL,
    NULL, 1, 12, 13, NULL, 'exact',
    'phase2demo_ch', 'phase2demo_ch_cmp', 'round',
    '1', '2', '0', 1,
    'Demo child questionnaire database pair.', 'prepared', 1, NOW(), 10, 'mock', 'mock')
 ON DUPLICATE KEY UPDATE
   questionnaire_name = VALUES(questionnaire_name),
+  table_preface = VALUES(table_preface),
   sample_ids_sql = VALUES(sample_ids_sql),
   search_column = VALUES(search_column),
   search_id1_start = VALUES(search_id1_start),

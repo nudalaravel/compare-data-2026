@@ -5,7 +5,7 @@ export default defineNuxtRouteMiddleware((to) => {
 
   const hasToken = Boolean(localStorage.getItem('_token_tcls'))
   const isLoginPage = to.path === '/login'
-  const publicPages = ['/list']
+  const publicPages = ['/list', '/report']
   const isPublicPage = publicPages.includes(to.path)
 
   if (!hasToken && !isLoginPage && !isPublicPage) {
