@@ -1,0 +1,33 @@
+const appBaseURL = normalizeAppBaseURL(process.env.NUXT_PUBLIC_APP_BASE_URL || process.env.NUXT_APP_BASE_URL || '/compare-data/')
+const defaultApiBase = `${appBaseURL.replace(/\/$/, '')}/api`
+
+function normalizeAppBaseURL(value: string) {
+  const trimmed = String(value || '/').trim()
+  if (!trimmed || trimmed === '/') {
+    return '/'
+  }
+
+  return `/${trimmed.replace(/^\/+|\/+$/g, '')}/`
+}
+
+export default defineNuxtConfig({
+  devtools: { enabled: false },
+  css: ['~/assets/main.css'],
+  app: {
+    baseURL: appBaseURL,
+    head: {
+      title: 'Compare Data Online',
+      htmlAttrs: { lang: 'th' }
+    }
+  },
+  modules: ['@pinia/nuxt'],
+  runtimeConfig: {
+    public: {
+      appBaseUrl: appBaseURL,
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || defaultApiBase,
+      loginUrl: process.env.NUXT_PUBLIC_LOGIN_URL || 'https://ripedresearch.org/api/spaqnaire2025-api/login_merge.php',
+      appVersion: process.env.NUXT_PUBLIC_APP_VERSION || process.env.VERSION || '1.0.0',
+      sampleIdsLimit: process.env.NUXT_PUBLIC_SAMPLE_IDS_LIMIT || 'all'
+    }
+  }
+})
