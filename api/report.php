@@ -295,13 +295,8 @@ function report_table_display_name(mysqli $mysqli, array $project, string $table
 
 function report_sample_ids(mysqli $mysqli, array $project, array $tables, string $searchId): array
 {
-    // ถ้าฐานนี้ตั้ง sample_ids_sql ไว้ ให้ใช้ SQL ที่ Admin เขียนเอง
-    $customSql = trim((string)($project['sample_ids_sql'] ?? ''));
-    if ($customSql !== '') {
-        return report_sample_ids_from_custom_sql($mysqli, $customSql, (string)$project['database_code'], $searchId);
-    }
-
-    // ถ้าไม่มี sample_ids_sql ให้ union ID จากทุกตารางที่เปิด compare โดยดู round 1/2 ใน raw
+    // Report ต้องแสดงเฉพาะรายการที่มีข้อมูลคีย์แล้วจริงใน raw table เท่านั้น
+    // จึง union ID จากทุกตารางที่เปิด compare โดยดู round 1/2 ใน raw เสมอ ไม่ใช้รายชื่อ sample ทั้งหมดจาก sample_ids_sql
     $ids = [];
     foreach ($tables as $table) {
         $tableName = assert_identifier((string)$table['table_name']);
@@ -341,49 +336,6 @@ function report_sample_ids(mysqli $mysqli, array $project, array $tables, string
             if ($id !== '') {
                 $ids[$id] = true;
             }
-        }
-    }
-
-    $sorted = array_keys($ids);
-    sort($sorted, SORT_NATURAL);
-    return $sorted;
-}
-
-function report_sample_ids_from_custom_sql(mysqli $mysqli, string $customSql, string $databaseCode, string $searchId): array
-{
-    // กันไม่ให้ sample_ids_sql เป็นคำสั่งเขียนข้อมูล เพราะ report ต้องอ่านอย่างเดียว
-    $normalized = trim(preg_replace('/\s+/', ' ', $customSql) ?? '');
-    $isSelect = preg_match('/^\(?\s*SELECT\b/i', $normalized) === 1;
-    $hasDangerousSql = preg_match('/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|CALL|LOAD|GRANT|REVOKE|HANDLER|LOCK|UNLOCK|OUTFILE|DUMPFILE)\b/i', $normalized) === 1;
-    if ($normalized === '' || strpos($normalized, ';') !== false || !$isSelect || $hasDangerousSql) {
-        return [];
-    }
-
-    $params = [$databaseCode, ''];
-    $types = 'ss';
-    $whereSearch = '';
-    if ($searchId !== '') {
-        $whereSearch = ' AND CAST(sample_source.id AS CHAR) LIKE ?';
-        $params[] = $searchId . '%';
-        $types .= 's';
-    }
-
-    $sql = 'SELECT DISTINCT CAST(sample_source.id AS CHAR) AS id
-            FROM (' . $customSql . ') sample_source
-            WHERE CAST(sample_source.database_code AS CHAR) = ?
-              AND CAST(sample_source.id AS CHAR) <> ?'
-            . $whereSearch . '
-            ORDER BY id
-            LIMIT 50000';
-    $stmt = $mysqli->prepare($sql);
-    bind_params($stmt, $types, $params);
-    $stmt->execute();
-
-    $ids = [];
-    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $id = trim((string)($row['id'] ?? ''));
-        if ($id !== '') {
-            $ids[$id] = true;
         }
     }
 
@@ -656,19 +608,19 @@ function report_status_cell(array $raw, array $cmp): array
     $pending = (int)($cmp['pending'] ?? 0);
 
     if ($completed > 0 && $pending === 0 && ($round2 === 0 || $completed >= $round2)) {
-        return ['tone' => 'ok', 'icon' => '✓', 'label' => 'Compare แล้ว'];
+        return ['tone' => 'ok', 'icon' => '✓', 'label' => 'Compare แล้ว', 'statusCode' => 1];
     }
     if ($completed > 0 || $pending > 0) {
-        return ['tone' => 'danger', 'icon' => '✖', 'label' => 'ข้อมูลทั้งสองรอบ ยังไม่ตรงกัน'];
+        return ['tone' => 'error', 'icon' => '✖', 'label' => 'ข้อมูลทั้งสองรอบ ยังไม่ตรงกัน', 'statusCode' => 2];
     }
     if ($round1 === 0 && $round2 === 0) {
-        return ['tone' => 'empty', 'icon' => '--', 'label' => 'ไม่มีข้อมูลทั้งสองรอบ'];
+        return ['tone' => 'empty', 'icon' => '--', 'label' => 'ไม่มีข้อมูลทั้งสองรอบ', 'statusCode' => 3];
     }
     if ($round1 !== $round2) {
-        return ['tone' => 'slash', 'icon' => '/', 'label' => 'ข้อมูลทั้งสองรอบ ยังไม่เท่ากัน'];
+        return ['tone' => 'slash', 'icon' => '/', 'label' => 'ข้อมูลทั้งสองรอบ ยังไม่เท่ากัน', 'statusCode' => 4];
     }
 
-    return ['tone' => 'warning', 'icon' => '▲', 'label' => 'ยังไม่ดำเนินการ compare'];
+    return ['tone' => 'warning', 'icon' => '▲', 'label' => 'ยังไม่ดำเนินการ compare', 'statusCode' => 5];
 }
 
 function report_primary_keys(mysqli $mysqli, array $project, string $tableName): array

@@ -9,7 +9,7 @@
         :disabled="!table.allowed || !statuses[index]?.ready"
         :title="statusTitle(statuses[index])"
         @click="$emit('select', table)"
-      >
+      > 
         <span :class="['tree-icon', statusTone(statuses[index])]">{{ statusIcon(statuses[index]) }}</span>
         <span>{{ table.name }}</span>
       </button>

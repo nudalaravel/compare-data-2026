@@ -305,7 +305,7 @@
           </button>
         </div>
         <p class="tab-hint">
-          Scan ตารางจาก raw database เลือกตารางที่เปิด Compare และกำหนดชื่อแสดงได้ ส่วน Primary Key และ Order แสดงเพื่ออ้างอิงเท่านั้น
+          Scan ตารางจาก raw database เลือกตารางที่เปิด Compare กำหนดชื่อแสดงและ Order (ลำดับการแสดงผล) ได้ ส่วน Primary Key แสดงเพื่ออ้างอิงเท่านั้น
         </p>
         <p class="section-note">
           {{ selectedDatabase ? `Raw database: ${selectedDatabase.raw_database}` : 'เลือก Database ก่อน scan ตาราง' }}
@@ -330,7 +330,7 @@
                 <td>{{ table.table_name }}</td>
                 <td><input v-model="table.display_name"></td>
                 <td><span class="readonly-text">{{ table.primary_keys_text || '-' }}</span></td>
-                <td><span class="readonly-order">{{ table.display_order }}</span></td>
+                <td><input v-model.number="table.display_order" type="number"></td>
                 <td>{{ table.exists_in_raw ? 'พบ' : 'ไม่พบ' }}</td>
                 <td class="button-stack">
                   <button type="button" :disabled="adminSaving" @click="saveTable(table)">บันทึก</button>

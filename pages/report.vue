@@ -101,7 +101,7 @@
                   <td class="text-left">{{ row.recpr2 || row.recby2 || '-' }}</td>
                   <td v-for="table in tableColumns" :key="`${row.id}-${table.tableName}`">
                     <span
-                      :class="['report-status-icon', row.tables?.[table.tableName]?.tone || 'empty']"
+                      :class="['legend ', row.tables?.[table.tableName]?.tone || 'empty']"
                       :title="row.tables?.[table.tableName]?.label || ''"
                     >
                       {{ row.tables?.[table.tableName]?.icon || '--' }}
