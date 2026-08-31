@@ -7,53 +7,57 @@ require_method('GET');
 
 try {
     $mysqli = db();
+
+    // 1) โหลดรายการฐานข้อมูลที่เปิดให้ดู report ได้
     $projects = fetch_admin_compare_projects($mysqli);
     if (!$projects) {
-        json_response(true, 'report', [
-            'projects' => [],
-            'selected_project' => null,
-            'tables' => [],
-            'rows' => [],
-            'pagination' => [
-                'page' => 1,
-                'limit' => 10,
-                'total' => 0,
-                'from' => 0,
-                'to' => 0,
-            ],
-        ]);
+        report_send_empty_response();
     }
 
+    // 2) เลือกฐานข้อมูลจาก URL ถ้าไม่ส่งมา ใช้รายการแรก
     $requestedProject = trim((string)($_GET['project_id'] ?? ($_GET['database_code'] ?? ($_GET['project'] ?? ''))));
-    $selectedProjectKey = $requestedProject !== '' ? $requestedProject : (string)$projects[0]['project_id'];
-    $project = fetch_project($mysqli, $selectedProjectKey);
-    $tables = array_values(array_filter(fetch_project_tables($mysqli, (string)$project['project_id']), static function (array $table): bool {
-        return !empty($table['allowed']);
-    }));
+    $projectKey = $requestedProject !== '' ? $requestedProject : (string)$projects[0]['project_id'];
+    $project = fetch_project($mysqli, $projectKey);
 
+    // 3) โหลดเฉพาะตารางที่ Admin เปิด allow_compare
+    $tables = [];
+    foreach (fetch_project_tables($mysqli, (string)$project['project_id']) as $table) {
+        if (!empty($table['allowed'])) {
+            $tables[] = $table;
+        }
+    }
+
+    // 4) รับเงื่อนไขค้นหาและแบ่งหน้า
     $searchId = trim((string)($_GET['search_id'] ?? ($_GET['q'] ?? '')));
     $page = max(1, (int)($_GET['page'] ?? 1));
     $limit = max(5, min(100, (int)($_GET['limit'] ?? 10)));
     $offset = ($page - 1) * $limit;
+    $debugMode = report_debug_enabled();
+    $debugData = ['recp_queries' => []];
 
-    $summaryDatabases = report_summary_scope_databases($project, $projects);
-    $summaryTables = report_summary_tables($mysqli, $project, $tables, $summaryDatabases);
-    $allIds = report_collect_sample_ids($mysqli, $project, $tables, $searchId);
+    // 5) สรุปจำนวนข้อมูลด้านบน
+    $summaryDatabases = report_databases_in_same_project($project, $projects);
+    $summaryMode = count($summaryDatabases) > 1 ? 'database_preface' : 'table_all';
+    if ($summaryMode === 'database_preface') {
+        $summaryRows = report_summary_by_database_preface($mysqli, $summaryDatabases);
+    } else {
+        $summaryRows = report_summary_by_table($mysqli, $project, $tables);
+    }
+
+    // 6) หา ID ทั้งหมด แล้วตัดเฉพาะหน้าปัจจุบัน
+    $allIds = report_sample_ids($mysqli, $project, $tables, $searchId);
     $total = count($allIds);
     $pageIds = array_slice($allIds, $offset, $limit);
-    $rows = report_build_rows($mysqli, $project, $tables, $pageIds);
 
-    json_response(true, 'report', [
+    // 7) สร้างแถวรายงานราย ID พร้อมสถานะทุกตาราง
+    $rows = report_rows_by_id($mysqli, $project, $tables, $pageIds, $debugMode, $debugData);
+
+    $response = [
         'projects' => $projects,
         'selected_project' => $project,
-        'tables' => $summaryTables,
-        'summary_mode' => count($summaryDatabases) > 1 ? 'database_preface' : 'table_all',
-        'table_columns' => array_map(static function (array $table): array {
-            return [
-                'table_name' => $table['table_name'],
-                'display_name' => $table['display_name'] ?: $table['table_name'],
-            ];
-        }, $tables),
+        'tables' => $summaryRows,
+        'summary_mode' => $summaryMode,
+        'table_columns' => report_table_columns($tables),
         'rows' => $rows,
         'search_id' => $searchId,
         'pagination' => [
@@ -63,109 +67,95 @@ try {
             'from' => $total === 0 ? 0 : $offset + 1,
             'to' => min($offset + count($pageIds), $total),
         ],
-    ]);
+    ];
+
+    if ($debugMode) {
+        $response['debug'] = $debugData;
+    }
+
+    json_response(true, 'report', $response);
 } catch (Throwable $exception) {
     error_log('Report failed: ' . $exception->getMessage());
     json_response(false, 'Cannot load report', [], ['REPORT_FAILED'], 500);
 }
 
-function report_summary_scope_databases(array $project, array $projects): array
+function report_debug_enabled(): bool
 {
-    $surveyProjectCode = (string)($project['survey_project_code'] ?? '');
-    if ($surveyProjectCode === '') {
-        return [$project];
-    }
-
-    $databases = [];
-    foreach ($projects as $candidate) {
-        if ((string)($candidate['survey_project_code'] ?? '') === $surveyProjectCode) {
-            $databases[] = $candidate;
-        }
-    }
-
-    return $databases ?: [$project];
+    $debug = strtolower(trim((string)($_GET['debug'] ?? ($_GET['debug_sql'] ?? ''))));
+    return in_array($debug, ['1', 'true', 'yes', 'sql', 'recp'], true);
 }
 
-function report_summary_tables(mysqli $mysqli, array $project, array $tables, array $summaryDatabases): array
+function report_send_empty_response(): void
 {
-    if (count($summaryDatabases) > 1) {
-        return report_summary_database_preface_rows($mysqli, $summaryDatabases);
-    }
-
-    return report_summary_table_rows($mysqli, $project, $tables);
+    json_response(true, 'report', [
+        'projects' => [],
+        'selected_project' => null,
+        'tables' => [],
+        'summary_mode' => 'table_all',
+        'table_columns' => [],
+        'rows' => [],
+        'pagination' => [
+            'page' => 1,
+            'limit' => 10,
+            'total' => 0,
+            'from' => 0,
+            'to' => 0,
+        ],
+    ]);
 }
 
-function report_summary_table_rows(mysqli $mysqli, array $project, array $tables): array
+function report_table_columns(array $tables): array
 {
-    $rows = [];
+    $columns = [];
     foreach ($tables as $table) {
         $tableName = assert_identifier((string)$table['table_name']);
-        $rawExists = metadata_table_exists($mysqli, $project['raw_database'], $tableName);
-        $cmpExists = metadata_table_exists($mysqli, $project['cmp_database'], $tableName);
-
-        $round1Count = $rawExists
-            ? report_count_round($mysqli, $project['raw_database'], $tableName, $project['round_field'], compare_round_value($project, 'round1_value', '1'))
-            : 0;
-        $round2Count = $rawExists
-            ? report_count_round($mysqli, $project['raw_database'], $tableName, $project['round_field'], compare_round_value($project, 'round2_value', '2'))
-            : 0;
-        $compareCount = $cmpExists
-            ? report_count_round($mysqli, $project['cmp_database'], $tableName, $project['round_field'], compare_round_value($project, 'completed_round_value', '0'))
-            : 0;
-
-        $rows[] = [
+        $columns[] = [
             'table_name' => $tableName,
             'display_name' => $table['display_name'] ?: $tableName,
-            'round1_count' => $round1Count,
-            'round2_count' => $round2Count,
-            'compare_count' => $compareCount,
         ];
     }
 
-    return $rows;
+    return $columns;
 }
 
-function report_summary_database_preface_rows(mysqli $mysqli, array $databases): array
+function report_databases_in_same_project(array $selectedProject, array $projects): array
+{
+    $surveyProjectCode = (string)($selectedProject['survey_project_code'] ?? '');
+    if ($surveyProjectCode === '') {
+        return [$selectedProject];
+    }
+
+    $databases = [];
+    foreach ($projects as $project) {
+        if ((string)($project['survey_project_code'] ?? '') === $surveyProjectCode) {
+            $databases[] = $project;
+        }
+    }
+
+    return $databases ?: [$selectedProject];
+}
+
+// กรณีโปรเจคมีหลายฐาน: ตาราง summary แสดงรายฐาน และนับเฉพาะ preface_* ของแต่ละฐาน
+function report_summary_by_database_preface(mysqli $mysqli, array $databases): array
 {
     $rows = [];
     foreach ($databases as $databaseProject) {
-        $prefaceTables = report_fetch_preface_tables($mysqli, $databaseProject);
         $round1Count = 0;
         $round2Count = 0;
         $compareCount = 0;
         $prefaceTableNames = [];
 
-        foreach ($prefaceTables as $table) {
-            $tableName = assert_identifier((string)$table['table_name']);
+        foreach (report_preface_tables($mysqli, $databaseProject) as $prefaceTable) {
+            $tableName = assert_identifier((string)$prefaceTable['table_name']);
             $prefaceTableNames[] = $tableName;
-            $rawExists = metadata_table_exists($mysqli, $databaseProject['raw_database'], $tableName);
-            $cmpExists = metadata_table_exists($mysqli, $databaseProject['cmp_database'], $tableName);
 
-            if ($rawExists) {
-                $round1Count += report_count_round(
-                    $mysqli,
-                    $databaseProject['raw_database'],
-                    $tableName,
-                    $databaseProject['round_field'],
-                    compare_round_value($databaseProject, 'round1_value', '1')
-                );
-                $round2Count += report_count_round(
-                    $mysqli,
-                    $databaseProject['raw_database'],
-                    $tableName,
-                    $databaseProject['round_field'],
-                    compare_round_value($databaseProject, 'round2_value', '2')
-                );
+            if (metadata_table_exists($mysqli, $databaseProject['raw_database'], $tableName)) {
+                $round1Count += report_count_round($mysqli, $databaseProject['raw_database'], $tableName, $databaseProject['round_field'], compare_round_value($databaseProject, 'round1_value', '1'));
+                $round2Count += report_count_round($mysqli, $databaseProject['raw_database'], $tableName, $databaseProject['round_field'], compare_round_value($databaseProject, 'round2_value', '2'));
             }
 
-            if ($cmpExists) {
-                $compareCount += report_count_round(
-                    $mysqli,
-                    $databaseProject['cmp_database'],
-                    $tableName,
-                    $databaseProject['round_field'],
-                    compare_round_value($databaseProject, 'completed_round_value', '0')
-                );
+            if (metadata_table_exists($mysqli, $databaseProject['cmp_database'], $tableName)) {
+                $compareCount += report_count_round($mysqli, $databaseProject['cmp_database'], $tableName, $databaseProject['round_field'], compare_round_value($databaseProject, 'completed_round_value', '0'));
             }
         }
 
@@ -193,32 +183,62 @@ function report_summary_database_preface_rows(mysqli $mysqli, array $databases):
     return $rows;
 }
 
-function report_fetch_preface_tables(mysqli $mysqli, array $project): array
+// กรณีโปรเจคมีฐานเดียว: ตาราง summary แสดงทุกตารางที่เปิด compare
+function report_summary_by_table(mysqli $mysqli, array $project, array $tables): array
 {
-    $configuredPrefaceTable = report_configured_preface_table($project);
-    if ($configuredPrefaceTable !== '') {
-        $displayName = $configuredPrefaceTable;
-        $databaseId = (int)($project['database_id'] ?? 0);
-        if ($databaseId > 0) {
-            $sql = 'SELECT display_name
-                    FROM ' . core_table('project_tables') . '
-                    WHERE database_id = ? AND table_name = ?
-                    LIMIT 1';
-            $stmt = $mysqli->prepare($sql);
-            $stmt->bind_param('is', $databaseId, $configuredPrefaceTable);
-            $stmt->execute();
-            $row = $stmt->get_result()->fetch_assoc();
-            if ($row && trim((string)($row['display_name'] ?? '')) !== '') {
-                $displayName = (string)$row['display_name'];
-            }
+    $rows = [];
+    foreach ($tables as $table) {
+        $tableName = assert_identifier((string)$table['table_name']);
+        $round1Count = 0;
+        $round2Count = 0;
+        $compareCount = 0;
+
+        if (metadata_table_exists($mysqli, $project['raw_database'], $tableName)) {
+            $round1Count = report_count_round($mysqli, $project['raw_database'], $tableName, $project['round_field'], compare_round_value($project, 'round1_value', '1'));
+            $round2Count = report_count_round($mysqli, $project['raw_database'], $tableName, $project['round_field'], compare_round_value($project, 'round2_value', '2'));
         }
 
+        if (metadata_table_exists($mysqli, $project['cmp_database'], $tableName)) {
+            $compareCount = report_count_round($mysqli, $project['cmp_database'], $tableName, $project['round_field'], compare_round_value($project, 'completed_round_value', '0'));
+        }
+
+        $rows[] = [
+            'table_name' => $tableName,
+            'display_name' => $table['display_name'] ?: $tableName,
+            'round1_count' => $round1Count,
+            'round2_count' => $round2Count,
+            'compare_count' => $compareCount,
+        ];
+    }
+
+    return $rows;
+}
+
+function report_count_round(mysqli $mysqli, string $database, string $tableName, string $roundField, string $roundValue): int
+{
+    $sql = 'SELECT COUNT(*) AS total
+            FROM ' . qt($database, $tableName) . ' r
+            WHERE r.' . qi($roundField) . ' = ?';
+    $stmt = $mysqli->prepare($sql);
+    $stmt->bind_param('s', $roundValue);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+
+    return (int)($row['total'] ?? 0);
+}
+
+function report_preface_tables(mysqli $mysqli, array $project): array
+{
+    // ถ้า Admin ระบุ table_preface แล้ว ให้ใช้ตัวนี้เป็นหลัก เช่น preface_hh หรือ preface_ch
+    $configured = report_preface_table_from_config($project);
+    if ($configured !== '') {
         return [[
-            'table_name' => $configuredPrefaceTable,
-            'display_name' => $displayName,
+            'table_name' => $configured,
+            'display_name' => report_table_display_name($mysqli, $project, $configured),
         ]];
     }
 
+    // ถ้าไม่ได้ระบุไว้ ค่อย fallback เป็นตารางที่ขึ้นต้นด้วย preface_ ใน allowlist
     $databaseId = (int)($project['database_id'] ?? 0);
     if ($databaseId <= 0) {
         return [];
@@ -247,45 +267,41 @@ function report_fetch_preface_tables(mysqli $mysqli, array $project): array
     return $tables;
 }
 
-function report_configured_preface_table(array $project): string
+function report_preface_table_from_config(array $project): string
 {
     $tableName = trim((string)($project['table_preface'] ?? ($project['tablePreface'] ?? '')));
-    if ($tableName === '') {
-        return '';
-    }
-
-    return assert_identifier($tableName);
+    return $tableName === '' ? '' : assert_identifier($tableName);
 }
 
-function report_is_preface_table(array $project, string $tableName): bool
+function report_table_display_name(mysqli $mysqli, array $project, string $tableName): string
 {
-    $configuredPrefaceTable = report_configured_preface_table($project);
-    if ($configuredPrefaceTable !== '') {
-        return $tableName === $configuredPrefaceTable;
+    $databaseId = (int)($project['database_id'] ?? 0);
+    if ($databaseId <= 0) {
+        return $tableName;
     }
 
-    return strpos($tableName, 'preface_') === 0;
-}
-
-function report_count_round(mysqli $mysqli, string $database, string $tableName, string $roundField, string $roundValue): int
-{
-    $sql = 'SELECT COUNT(*) AS total
-            FROM ' . qt($database, $tableName) . ' r
-            WHERE r.' . qi($roundField) . ' = ?';
+    $sql = 'SELECT display_name
+            FROM ' . core_table('project_tables') . '
+            WHERE database_id = ? AND table_name = ?
+            LIMIT 1';
     $stmt = $mysqli->prepare($sql);
-    $stmt->bind_param('s', $roundValue);
+    $stmt->bind_param('is', $databaseId, $tableName);
     $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $displayName = trim((string)($row['display_name'] ?? ''));
 
-    return (int)$stmt->get_result()->fetch_assoc()['total'];
+    return $displayName !== '' ? $displayName : $tableName;
 }
 
-function report_collect_sample_ids(mysqli $mysqli, array $project, array $tables, string $searchId): array
+function report_sample_ids(mysqli $mysqli, array $project, array $tables, string $searchId): array
 {
+    // ถ้าฐานนี้ตั้ง sample_ids_sql ไว้ ให้ใช้ SQL ที่ Admin เขียนเอง
     $customSql = trim((string)($project['sample_ids_sql'] ?? ''));
     if ($customSql !== '') {
-        return report_collect_custom_sample_ids($mysqli, $customSql, (string)$project['database_code'], $searchId);
+        return report_sample_ids_from_custom_sql($mysqli, $customSql, (string)$project['database_code'], $searchId);
     }
 
+    // ถ้าไม่มี sample_ids_sql ให้ union ID จากทุกตารางที่เปิด compare โดยดู round 1/2 ใน raw
     $ids = [];
     foreach ($tables as $table) {
         $tableName = assert_identifier((string)$table['table_name']);
@@ -293,35 +309,33 @@ function report_collect_sample_ids(mysqli $mysqli, array $project, array $tables
             continue;
         }
 
-        $primaryKeys = report_primary_keys_for_table($mysqli, $project, $tableName);
-        if (!$primaryKeys) {
-            continue;
-        }
+        $primaryKeys = report_primary_keys($mysqli, $project, $tableName);
         $searchExpr = compare_search_expression($mysqli, $project, $tableName, 'r', $primaryKeys, false);
         if ($searchExpr === null) {
             continue;
         }
 
-        $where = 'r.' . qi($project['round_field']) . ' IN (?, ?) AND ' . $searchExpr . " <> ''";
-        $params = [
-            compare_round_value($project, 'round1_value', '1'),
-            compare_round_value($project, 'round2_value', '2'),
-        ];
+        $round1 = compare_round_value($project, 'round1_value', '1');
+        $round2 = compare_round_value($project, 'round2_value', '2');
+        $params = [$round1, $round2];
         $types = 'ss';
+        $whereSearch = '';
         if ($searchId !== '') {
-            $where .= ' AND ' . $searchExpr . ' LIKE ?';
+            $whereSearch = ' AND ' . $searchExpr . ' LIKE ?';
             $params[] = $searchId . '%';
             $types .= 's';
         }
 
         $sql = 'SELECT DISTINCT CAST(' . $searchExpr . ' AS CHAR) AS id
                 FROM ' . qt($project['raw_database'], $tableName) . ' r
-                WHERE ' . $where . '
+                WHERE r.' . qi($project['round_field']) . ' IN (?, ?)
+                  AND ' . $searchExpr . " <> ''" . $whereSearch . '
                 ORDER BY id
                 LIMIT 50000';
         $stmt = $mysqli->prepare($sql);
         bind_params($stmt, $types, $params);
         $stmt->execute();
+
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $id = trim((string)($row['id'] ?? ''));
             if ($id !== '') {
@@ -335,29 +349,30 @@ function report_collect_sample_ids(mysqli $mysqli, array $project, array $tables
     return $sorted;
 }
 
-function report_collect_custom_sample_ids(mysqli $mysqli, string $customSql, string $databaseCode, string $searchId): array
+function report_sample_ids_from_custom_sql(mysqli $mysqli, string $customSql, string $databaseCode, string $searchId): array
 {
+    // กันไม่ให้ sample_ids_sql เป็นคำสั่งเขียนข้อมูล เพราะ report ต้องอ่านอย่างเดียว
     $normalized = trim(preg_replace('/\s+/', ' ', $customSql) ?? '');
-    if ($normalized === ''
-        || strpos($normalized, ';') !== false
-        || !preg_match('/^\(?\s*SELECT\b/i', $normalized)
-        || preg_match('/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|CALL|LOAD|GRANT|REVOKE|HANDLER|LOCK|UNLOCK|OUTFILE|DUMPFILE)\b/i', $normalized)) {
+    $isSelect = preg_match('/^\(?\s*SELECT\b/i', $normalized) === 1;
+    $hasDangerousSql = preg_match('/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|CALL|LOAD|GRANT|REVOKE|HANDLER|LOCK|UNLOCK|OUTFILE|DUMPFILE)\b/i', $normalized) === 1;
+    if ($normalized === '' || strpos($normalized, ';') !== false || !$isSelect || $hasDangerousSql) {
         return [];
     }
 
-    $where = 'WHERE CAST(sample_source.database_code AS CHAR) = ?
-              AND CAST(sample_source.id AS CHAR) <> ?';
     $params = [$databaseCode, ''];
     $types = 'ss';
+    $whereSearch = '';
     if ($searchId !== '') {
-        $where .= ' AND CAST(sample_source.id AS CHAR) LIKE ?';
+        $whereSearch = ' AND CAST(sample_source.id AS CHAR) LIKE ?';
         $params[] = $searchId . '%';
         $types .= 's';
     }
 
     $sql = 'SELECT DISTINCT CAST(sample_source.id AS CHAR) AS id
             FROM (' . $customSql . ') sample_source
-            ' . $where . '
+            WHERE CAST(sample_source.database_code AS CHAR) = ?
+              AND CAST(sample_source.id AS CHAR) <> ?'
+            . $whereSearch . '
             ORDER BY id
             LIMIT 50000';
     $stmt = $mysqli->prepare($sql);
@@ -377,7 +392,7 @@ function report_collect_custom_sample_ids(mysqli $mysqli, string $customSql, str
     return $sorted;
 }
 
-function report_build_rows(mysqli $mysqli, array $project, array $tables, array $ids): array
+function report_rows_by_id(mysqli $mysqli, array $project, array $tables, array $ids, bool $debugMode, array &$debugData): array
 {
     if (!$ids) {
         return [];
@@ -389,20 +404,22 @@ function report_build_rows(mysqli $mysqli, array $project, array $tables, array 
             'id' => $id,
             'recp' => '',
             'recpr2' => '',
+            'recby' => '',
+            'recby2' => '',
             'tables' => [],
         ];
     }
 
-    report_attach_operator_values($mysqli, $project, report_operator_tables($project, $tables), $ids, $rows);
+    report_fill_recp_from_preface($mysqli, $project, $ids, $rows, $debugMode, $debugData);
 
     foreach ($tables as $table) {
         $tableName = assert_identifier((string)$table['table_name']);
-        $rawStatus = report_raw_status_by_id($mysqli, $project, $tableName, $ids);
-        $cmpStatus = report_cmp_status_by_id($mysqli, $project, $tableName, $ids);
+        $rawCounts = report_raw_round_counts_by_id($mysqli, $project, $tableName, $ids);
+        $cmpCounts = report_cmp_counts_by_id($mysqli, $project, $tableName, $ids);
 
         foreach ($ids as $id) {
-            $raw = $rawStatus[$id] ?? ['round1' => 0, 'round2' => 0];
-            $cmp = $cmpStatus[$id] ?? ['completed' => 0, 'pending' => 0];
+            $raw = $rawCounts[$id] ?? ['round1' => 0, 'round2' => 0];
+            $cmp = $cmpCounts[$id] ?? ['completed' => 0, 'pending' => 0];
             $rows[$id]['tables'][$tableName] = report_status_cell($raw, $cmp);
         }
     }
@@ -410,43 +427,51 @@ function report_build_rows(mysqli $mysqli, array $project, array $tables, array 
     return array_values($rows);
 }
 
-function report_operator_tables(array $project, array $tables): array
+function report_fill_recp_from_preface(mysqli $mysqli, array $project, array $ids, array &$rows, bool $debugMode, array &$debugData): void
 {
-    $configuredPrefaceTable = report_configured_preface_table($project);
-    if ($configuredPrefaceTable === '') {
-        return $tables;
+    $prefaceTables = report_preface_tables($mysqli, $project);
+    if (!$prefaceTables && $debugMode) {
+        $debugData['recp_queries'][] = [
+            'purpose' => 'recp_recpr2_from_preface',
+            'source_line' => null,
+            'skipped' => true,
+            'reason' => 'NO_PREFACE_TABLE_CONFIGURED',
+            'table_preface' => (string)($project['table_preface'] ?? ($project['tablePreface'] ?? '')),
+        ];
     }
 
-    foreach ($tables as $table) {
-        if ((string)($table['table_name'] ?? '') === $configuredPrefaceTable) {
-            return $tables;
-        }
-    }
-
-    $tables[] = [
-        'table_name' => $configuredPrefaceTable,
-        'display_name' => $configuredPrefaceTable,
-    ];
-
-    return $tables;
-}
-
-function report_attach_operator_values(mysqli $mysqli, array $project, array $tables, array $ids, array &$rows): void
-{
-    foreach ($tables as $table) {
-        $tableName = assert_identifier((string)$table['table_name']);
-        if (!report_is_preface_table($project, $tableName)
-            || !metadata_table_exists($mysqli, $project['raw_database'], $tableName)
-            || !metadata_column_exists($mysqli, $project['raw_database'], $tableName, 'recp')) {
+    foreach ($prefaceTables as $prefaceTable) {
+        $tableName = assert_identifier((string)$prefaceTable['table_name']);
+        $tableExists = metadata_table_exists($mysqli, $project['raw_database'], $tableName);
+        $recpColumnExists = $tableExists && metadata_column_exists($mysqli, $project['raw_database'], $tableName, 'recp');
+        if (!$tableExists || !$recpColumnExists) {
+            if ($debugMode) {
+                $debugData['recp_queries'][] = [
+                    'purpose' => 'recp_recpr2_from_preface',
+                    'source_line' => null,
+                    'skipped' => true,
+                    'reason' => !$tableExists ? 'RAW_PREFACE_TABLE_NOT_FOUND' : 'RECP_COLUMN_NOT_FOUND',
+                    'raw_database' => (string)$project['raw_database'],
+                    'table_name' => $tableName,
+                ];
+            }
             continue;
         }
 
-        $primaryKeys = report_primary_keys_for_table($mysqli, $project, $tableName);
-        if (!$primaryKeys) {
-            continue;
-        }
+        $primaryKeys = report_primary_keys($mysqli, $project, $tableName);
         $searchExpr = compare_search_expression($mysqli, $project, $tableName, 'r', $primaryKeys, false);
         if ($searchExpr === null) {
+            if ($debugMode) {
+                $debugData['recp_queries'][] = [
+                    'purpose' => 'recp_recpr2_from_preface',
+                    'skipped' => true,
+                    'reason' => 'SEARCH_EXPRESSION_NOT_FOUND',
+                    'raw_database' => (string)$project['raw_database'],
+                    'table_name' => $tableName,
+                    'primary_keys' => $primaryKeys,
+                    'search_column' => (string)($project['search_column'] ?? ''),
+                ];
+            }
             continue;
         }
 
@@ -455,6 +480,9 @@ function report_attach_operator_values(mysqli $mysqli, array $project, array $ta
         $round2 = compare_round_value($project, 'round2_value', '2');
         $params = array_merge([$round1, $round2, $round1, $round2], $idParams);
         $types = 'ssss' . $idTypes;
+
+        // recp / recby  = recp จาก round 1, recpr2 / recby2 = recp จาก round 2
+        $sourceLine = __LINE__ + 1;
         $sql = 'SELECT CAST(' . $searchExpr . ' AS CHAR) AS id,
                        MAX(CASE WHEN r.' . qi($project['round_field']) . ' = ? THEN CAST(r.' . qi('recp') . ' AS CHAR) ELSE \'\' END) AS recp,
                        MAX(CASE WHEN r.' . qi($project['round_field']) . ' = ? THEN CAST(r.' . qi('recp') . ' AS CHAR) ELSE \'\' END) AS recpr2
@@ -462,63 +490,93 @@ function report_attach_operator_values(mysqli $mysqli, array $project, array $ta
                 WHERE r.' . qi($project['round_field']) . ' IN (?, ?)
                   AND ' . $searchExpr . ' IN (' . $inSql . ')
                 GROUP BY id';
+        $debugIndex = null;
+        if ($debugMode) {
+            $debugData['recp_queries'][] = [
+                'purpose' => 'recp_recpr2_from_preface',
+                'source_line' => $sourceLine,
+                'skipped' => false,
+                'raw_database' => (string)$project['raw_database'],
+                'table_name' => $tableName,
+                'round_field' => (string)$project['round_field'],
+                'round1_value' => $round1,
+                'round2_value' => $round2,
+                'ids' => array_values($ids),
+                'primary_keys' => $primaryKeys,
+                'search_expr' => $searchExpr,
+                'param_types' => $types,
+                'params' => $params,
+                'sql' => $sql,
+                'compiled_sql' => report_debug_sql($sql, $params),
+                'row_count' => 0,
+            ];
+            $debugIndex = count($debugData['recp_queries']) - 1;
+        }
+
         $stmt = $mysqli->prepare($sql);
         bind_params($stmt, $types, $params);
         $stmt->execute();
 
-        foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $resultRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        if ($debugMode && $debugIndex !== null) {
+            $debugData['recp_queries'][$debugIndex]['row_count'] = count($resultRows);
+            $debugData['recp_queries'][$debugIndex]['result_ids'] = array_map(static function ($row): string {
+                return (string)($row['id'] ?? '');
+            }, $resultRows);
+        }
+
+        foreach ($resultRows as $row) {
             $id = trim((string)($row['id'] ?? ''));
             if (!isset($rows[$id])) {
                 continue;
             }
+
+            $round1Recorder = (string)($row['recp'] ?? '');
+            $round2Recorder = (string)($row['recpr2'] ?? '');
             if ($rows[$id]['recp'] === '') {
-                $rows[$id]['recp'] = (string)($row['recp'] ?? '');
+                $rows[$id]['recp'] = $round1Recorder;
+                $rows[$id]['recby'] = $round1Recorder;
             }
             if ($rows[$id]['recpr2'] === '') {
-                $rows[$id]['recpr2'] = (string)($row['recpr2'] ?? '');
+                $rows[$id]['recpr2'] = $round2Recorder;
+                $rows[$id]['recby2'] = $round2Recorder;
             }
         }
     }
 }
 
-function report_primary_keys_for_table(mysqli $mysqli, array $project, string $tableName): array
+function report_debug_sql(string $sql, array $params): string
 {
-    $keys = [];
-    $databaseId = (int)($project['database_id'] ?? 0);
-    if ($databaseId > 0 && metadata_table_exists($mysqli, CMP_CORE_DB, 'project_tables')) {
-        $sql = 'SELECT primary_keys_json
-                FROM ' . core_table('project_tables') . '
-                WHERE database_id = ? AND table_name = ?
-                LIMIT 1';
-        $stmt = $mysqli->prepare($sql);
-        $stmt->bind_param('is', $databaseId, $tableName);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
-        if ($row) {
-            $decoded = json_decode((string)($row['primary_keys_json'] ?? ''), true);
-            $keys = is_array($decoded) ? array_values(array_filter(array_map('strval', $decoded))) : [];
-        }
+    $parts = explode('?', $sql);
+    if (count($parts) === 1) {
+        return $sql;
     }
 
-    if (!$keys) {
-        $keys = fetch_raw_primary_keys($mysqli, (string)$project['raw_database'], $tableName);
+    $compiled = array_shift($parts);
+    foreach ($parts as $index => $part) {
+        $compiled .= array_key_exists($index, $params) ? report_debug_value($params[$index]) : '?';
+        $compiled .= $part;
     }
 
-    $roundField = strtolower((string)$project['round_field']);
-    $keys = array_values(array_filter($keys, static function ($key) use ($roundField) {
-        return strtolower((string)$key) !== $roundField;
-    }));
-
-    return array_values(array_unique(array_map('assert_identifier', $keys)));
+    return $compiled;
 }
 
-function report_raw_status_by_id(mysqli $mysqli, array $project, string $tableName, array $ids): array
+function report_debug_value($value): string
+{
+    if ($value === null) {
+        return 'NULL';
+    }
+
+    return "'" . str_replace("'", "''", (string)$value) . "'";
+}
+
+function report_raw_round_counts_by_id(mysqli $mysqli, array $project, string $tableName, array $ids): array
 {
     if (!metadata_table_exists($mysqli, $project['raw_database'], $tableName)) {
         return [];
     }
 
-    $primaryKeys = fetch_primary_keys($mysqli, (string)$project['project_id'], $tableName);
+    $primaryKeys = report_primary_keys($mysqli, $project, $tableName);
     $searchExpr = compare_search_expression($mysqli, $project, $tableName, 'r', $primaryKeys, false);
     if ($searchExpr === null) {
         return [];
@@ -541,24 +599,24 @@ function report_raw_status_by_id(mysqli $mysqli, array $project, string $tableNa
     bind_params($stmt, $types, $params);
     $stmt->execute();
 
-    $status = [];
+    $counts = [];
     foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $status[(string)$row['id']] = [
+        $counts[(string)$row['id']] = [
             'round1' => (int)$row['round1_count'],
             'round2' => (int)$row['round2_count'],
         ];
     }
 
-    return $status;
+    return $counts;
 }
 
-function report_cmp_status_by_id(mysqli $mysqli, array $project, string $tableName, array $ids): array
+function report_cmp_counts_by_id(mysqli $mysqli, array $project, string $tableName, array $ids): array
 {
     if (!metadata_table_exists($mysqli, $project['cmp_database'], $tableName)) {
         return [];
     }
 
-    $primaryKeys = fetch_primary_keys($mysqli, (string)$project['project_id'], $tableName);
+    $primaryKeys = report_primary_keys($mysqli, $project, $tableName);
     $searchExpr = compare_search_expression($mysqli, $project, $tableName, 'c', $primaryKeys, false);
     if ($searchExpr === null) {
         return [];
@@ -579,15 +637,15 @@ function report_cmp_status_by_id(mysqli $mysqli, array $project, string $tableNa
     bind_params($stmt, $types, $params);
     $stmt->execute();
 
-    $status = [];
+    $counts = [];
     foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $status[(string)$row['id']] = [
+        $counts[(string)$row['id']] = [
             'completed' => (int)$row['completed_count'],
             'pending' => (int)$row['pending_count'],
         ];
     }
 
-    return $status;
+    return $counts;
 }
 
 function report_status_cell(array $raw, array $cmp): array
@@ -613,9 +671,43 @@ function report_status_cell(array $raw, array $cmp): array
     return ['tone' => 'warning', 'icon' => '▲', 'label' => 'ยังไม่ดำเนินการ compare'];
 }
 
+function report_primary_keys(mysqli $mysqli, array $project, string $tableName): array
+{
+    $keys = [];
+    $databaseId = (int)($project['database_id'] ?? 0);
+    if ($databaseId > 0 && metadata_table_exists($mysqli, CMP_CORE_DB, 'project_tables')) {
+        $sql = 'SELECT primary_keys_json
+                FROM ' . core_table('project_tables') . '
+                WHERE database_id = ? AND table_name = ?
+                LIMIT 1';
+        $stmt = $mysqli->prepare($sql);
+        $stmt->bind_param('is', $databaseId, $tableName);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        if ($row) {
+            $decoded = json_decode((string)($row['primary_keys_json'] ?? ''), true);
+            $keys = is_array($decoded) ? array_values(array_filter(array_map('strval', $decoded))) : [];
+        }
+    }
+
+    if (!$keys) {
+        $keys = fetch_raw_primary_keys($mysqli, (string)$project['raw_database'], $tableName);
+    }
+
+    $roundField = strtolower((string)$project['round_field']);
+    $keys = array_values(array_filter($keys, static function ($key) use ($roundField): bool {
+        return strtolower((string)$key) !== $roundField;
+    }));
+
+    return validate_primary_keys($keys);
+}
+
 function report_in_clause(array $ids): array
 {
     $params = array_values(array_map('strval', $ids));
-    $placeholders = implode(', ', array_fill(0, count($params), '?'));
-    return [$placeholders, str_repeat('s', count($params)), $params];
+    return [
+        implode(', ', array_fill(0, count($params), '?')),
+        str_repeat('s', count($params)),
+        $params,
+    ];
 }
