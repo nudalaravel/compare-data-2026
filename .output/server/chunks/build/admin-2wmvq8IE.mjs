@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/admin-2wmvq8IE');import { _ as _sfc_main$1 } from './LegacyPanel-DJJ9u9fC.mjs';
+import { _ as _sfc_main$1 } from './LegacyPanel-DJJ9u9fC.mjs';
 import { ref, reactive, computed, watch, mergeProps, unref, withCtx, createVNode, createTextVNode, withDirectives, isRef, openBlock, createBlock, Fragment, renderList, toDisplayString, vModelSelect, vModelText, createCommentVNode, useSSRContext } from 'vue';
 import { ssrRenderAttrs, ssrInterpolate, ssrRenderList, ssrRenderClass, ssrRenderComponent, ssrRenderAttr, ssrIncludeBooleanAttr, ssrLooseContain, ssrLooseEqual } from 'vue/server-renderer';
 import { _ as _export_sfc, u as useRuntimeConfig } from './server.mjs';
@@ -974,5 +974,5 @@ _sfc_main.setup = (props, ctx) => {
 };
 const admin = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-1bc5df0c"]]);
 
-export { admin as default };;globalThis.__timing__.logEnd('Load chunks/build/admin-2wmvq8IE');
+export { admin as default };
 //# sourceMappingURL=admin-2wmvq8IE.mjs.map

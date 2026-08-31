@@ -1,7 +1,7 @@
 import { shallowReactive, reactive, effectScope, getCurrentScope, hasInjectionContext, getCurrentInstance, inject, toRef, shallowRef, isReadonly, isRef, isShallow, isReactive, toRaw, defineComponent, createElementBlock, provide, cloneVNode, h, defineAsyncComponent, computed, unref, Suspense, nextTick, mergeProps, ref, isVNode, createCommentVNode, Fragment, withCtx, createVNode, useSSRContext, onErrorCaptured, onServerPrefetch, resolveDynamicComponent, createApp } from "vue";
 import { $fetch as $fetch$1 } from "E:/Project2026/compare-data/node_modules/ofetch/dist/node.mjs";
 import { baseURL } from "#internal/nuxt/paths";
-import { createHooks, createDebugger } from "E:/Project2026/compare-data/node_modules/hookable/dist/index.mjs";
+import { createHooks } from "E:/Project2026/compare-data/node_modules/hookable/dist/index.mjs";
 import { getContext, executeAsync } from "E:/Project2026/compare-data/node_modules/nuxt/node_modules/unctx/dist/index.mjs";
 import { sanitizeStatusCode, createError as createError$1 } from "E:/Project2026/compare-data/node_modules/h3/dist/index.mjs";
 import { shouldHydrate, setActivePinia, createPinia } from "pinia";
@@ -479,7 +479,7 @@ const _routes = [
   {
     name: "report",
     path: "/report",
-    component: () => import("./_nuxt/report-CgsboPeg.js")
+    component: () => import("./_nuxt/report-DiNUA6lA.js")
   }
 ];
 const _wrapInTransition = (props, children) => {
@@ -860,13 +860,6 @@ const plugin$1 = /* @__PURE__ */ defineNuxtPlugin({
     return { provide: { router } };
   }
 });
-const debug_hooks_hyXe6laRLyyi6S6XoqeItfe9HTFGNswlS09LT9GQbmQ = /* @__PURE__ */ defineNuxtPlugin({
-  name: "nuxt:debug:hooks",
-  enforce: "pre",
-  setup(nuxtApp) {
-    createDebugger(nuxtApp.hooks, { tag: "nuxt-app" });
-  }
-});
 const reducers = [
   ["NuxtError", (data) => isNuxtError(data) && data.toJSON()],
   ["EmptyShallowRef", (data) => isRef(data) && isShallow(data) && !data.value && (typeof data.value === "bigint" ? "0n" : JSON.stringify(data.value) || "_")],
@@ -951,7 +944,6 @@ const plugins = [
   payloadPlugin,
   unhead_k2P3m_ZDyjlr2mMYnoDPwavjsDN8hBlk9cFai0bbopU,
   plugin$1,
-  debug_hooks_hyXe6laRLyyi6S6XoqeItfe9HTFGNswlS09LT9GQbmQ,
   revive_payload_server_MVtmlZaQpj6ApFmshWfUWl5PehCebzaBf2NuRMiIbms,
   plugin,
   components_plugin_z4hgvsiddfKkfXTP6M8M4zG5Cb7sGnDhcryKVM45Di4

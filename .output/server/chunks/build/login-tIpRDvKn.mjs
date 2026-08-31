@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/login-tIpRDvKn');import { _ as _sfc_main$1 } from './LegacyPanel-DJJ9u9fC.mjs';
+import { _ as _sfc_main$1 } from './LegacyPanel-DJJ9u9fC.mjs';
 import { ref, mergeProps, withCtx, unref, createVNode, withModifiers, withDirectives, isRef, vModelText, toDisplayString, useSSRContext } from 'vue';
 import { ssrRenderAttrs, ssrRenderComponent, ssrRenderAttr, ssrIncludeBooleanAttr, ssrInterpolate } from 'vue/server-renderer';
 import { b as useRouter, a as useRoute } from './server.mjs';
@@ -109,5 +109,5 @@ _sfc_main.setup = (props, ctx) => {
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };
 
-export { _sfc_main as default };;globalThis.__timing__.logEnd('Load chunks/build/login-tIpRDvKn');
+export { _sfc_main as default };
 //# sourceMappingURL=login-tIpRDvKn.mjs.map

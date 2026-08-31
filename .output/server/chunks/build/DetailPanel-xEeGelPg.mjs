@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/DetailPanel-xEeGelPg');import { _ as _sfc_main$1 } from './LegacyPanel-DJJ9u9fC.mjs';
+import { _ as _sfc_main$1 } from './LegacyPanel-DJJ9u9fC.mjs';
 import { mergeProps, withCtx, createVNode, openBlock, createBlock, Fragment, renderList, toDisplayString, useSSRContext } from 'vue';
 import { ssrRenderComponent, ssrRenderList, ssrInterpolate } from 'vue/server-renderer';
 
@@ -51,5 +51,5 @@ _sfc_main.setup = (props, ctx) => {
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };
 
-export { _sfc_main as _ };;globalThis.__timing__.logEnd('Load chunks/build/DetailPanel-xEeGelPg');
+export { _sfc_main as _ };
 //# sourceMappingURL=DetailPanel-xEeGelPg.mjs.map

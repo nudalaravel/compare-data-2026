@@ -97,8 +97,8 @@
               <tbody>
                 <tr v-for="row in visibleRows" :key="row.id">
                   <td>{{ row.id }}</td>
-                  <td class="text-left">{{ row.recp || '-' }}</td>
-                  <td class="text-left">{{ row.recpr2 || '-' }}</td>
+                  <td class="text-left">{{ row.recp || row.recby ||'-' }}</td>
+                  <td class="text-left">{{ row.recpr2 || row.recby2 || '-' }}</td>
                   <td v-for="table in tableColumns" :key="`${row.id}-${table.tableName}`">
                     <span
                       :class="['report-status-icon', row.tables?.[table.tableName]?.tone || 'empty']"
@@ -191,6 +191,8 @@ const visibleRows = computed(() => {
       row.id,
       row.recp,
       row.recpr2,
+      row.recby,
+      row.recby2,
       ...Object.values(row.tables || {}).map((cell) => `${cell.icon || ''} ${cell.label || ''}`)
     ]
 
@@ -271,8 +273,8 @@ async function loadReport(page = pagination.page) {
     if (res?.success === false) {
       throw new Error(res.message || 'Cannot load report')
     }
-
     const data = res?.data || {}
+    console.log(data)
     projects.value = (data.projects || []).map(normalizeProject)
     selectedProject.value = normalizeSelectedProject(data.selected_project)
     summaryMode.value = data.summary_mode || 'table_all'
@@ -280,6 +282,7 @@ async function loadReport(page = pagination.page) {
     summaryTables.value = (data.tables || []).map(normalizeSummaryTable)
     tableColumns.value = (data.table_columns || []).map(normalizeTableColumn)
     reportRows.value = (data.rows || []).map(normalizeReportRow)
+    console.log(reportRows.value)
     Object.assign(pagination, {
       page: Number(data.pagination?.page || page || 1),
       limit: Number(data.pagination?.limit || limit.value),
@@ -376,8 +379,10 @@ function normalizeTableColumn(table) {
 function normalizeReportRow(row) {
   return {
     id: String(row.id || ''),
-    recp: row.recp || '',
-    recpr2: row.recpr2 || '',
+    recp: row.recp || row.recby || '',
+    recpr2: row.recpr2 || row.recby2 || '',
+    recby: row.recby || row.recp || '',
+    recby2: row.recby2 || row.recpr2 || '',
     tables: row.tables || {}
   }
 }

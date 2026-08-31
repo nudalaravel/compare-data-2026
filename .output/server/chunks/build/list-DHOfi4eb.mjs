@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/list-DHOfi4eb');import { ref, reactive, computed, mergeProps, unref, useSSRContext } from 'vue';
+import { ref, reactive, computed, mergeProps, unref, useSSRContext } from 'vue';
 import { ssrRenderAttrs, ssrInterpolate, ssrRenderList, ssrRenderClass, ssrRenderStyle, ssrRenderAttr, ssrIncludeBooleanAttr, ssrLooseContain, ssrLooseEqual } from 'vue/server-renderer';
 import { _ as _export_sfc, u as useRuntimeConfig } from './server.mjs';
 import { u as useHead } from './v3-BRAkCVbx.mjs';
@@ -256,5 +256,5 @@ _sfc_main.setup = (props, ctx) => {
 };
 const list = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-7463d4ac"]]);
 
-export { list as default };;globalThis.__timing__.logEnd('Load chunks/build/list-DHOfi4eb');
+export { list as default };
 //# sourceMappingURL=list-DHOfi4eb.mjs.map

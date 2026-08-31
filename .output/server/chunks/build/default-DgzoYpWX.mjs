@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/default-DgzoYpWX');import { _ as __nuxt_component_0 } from './nuxt-link-DIiCkb4O.mjs';
+import { _ as __nuxt_component_0 } from './nuxt-link-DIiCkb4O.mjs';
 import { mergeProps, withCtx, createTextVNode, unref, toDisplayString, useSSRContext } from 'vue';
 import { ssrRenderAttrs, ssrRenderComponent, ssrRenderList, ssrInterpolate, ssrRenderSlot } from 'vue/server-renderer';
 import { a as useRoute, u as useRuntimeConfig } from './server.mjs';
@@ -102,5 +102,5 @@ _sfc_main.setup = (props, ctx) => {
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };
 
-export { _sfc_main as default };;globalThis.__timing__.logEnd('Load chunks/build/default-DgzoYpWX');
+export { _sfc_main as default };
 //# sourceMappingURL=default-DgzoYpWX.mjs.map

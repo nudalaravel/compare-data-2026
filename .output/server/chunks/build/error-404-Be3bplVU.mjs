@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/error-404-Be3bplVU');import { _ as __nuxt_component_0 } from './nuxt-link-DIiCkb4O.mjs';
+import { _ as __nuxt_component_0 } from './nuxt-link-DIiCkb4O.mjs';
 import { mergeProps, withCtx, createTextVNode, toDisplayString, useSSRContext } from 'vue';
 import { ssrRenderAttrs, ssrInterpolate, ssrRenderComponent } from 'vue/server-renderer';
 import { _ as _export_sfc } from './server.mjs';
@@ -95,5 +95,5 @@ _sfc_main.setup = (props, ctx) => {
 };
 const error404 = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-1bd9e11a"]]);
 
-export { error404 as default };;globalThis.__timing__.logEnd('Load chunks/build/error-404-Be3bplVU');
+export { error404 as default };
 //# sourceMappingURL=error-404-Be3bplVU.mjs.map

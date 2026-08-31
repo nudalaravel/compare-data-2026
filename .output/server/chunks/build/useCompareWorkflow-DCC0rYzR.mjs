@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/useCompareWorkflow-DCC0rYzR');import { c as useNuxtApp, u as useRuntimeConfig } from './server.mjs';
+import { c as useNuxtApp, u as useRuntimeConfig } from './server.mjs';
 import { computed, toRef, isRef } from 'vue';
 
 const useStateKeyPrefix = "$s";
@@ -1349,5 +1349,5 @@ function hasSaveValue(value) {
   return value !== null && typeof value !== "undefined" && String(value).trim() !== "";
 }
 
-export { useCompareWorkflow as u };;globalThis.__timing__.logEnd('Load chunks/build/useCompareWorkflow-DCC0rYzR');
+export { useCompareWorkflow as u };
 //# sourceMappingURL=useCompareWorkflow-DCC0rYzR.mjs.map

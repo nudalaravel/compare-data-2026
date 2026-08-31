@@ -1,4 +1,4 @@
-globalThis.__timing__.logStart('Load chunks/build/index-DgOwGUEY');import { _ as _sfc_main$7 } from './LegacyPanel-DJJ9u9fC.mjs';
+import { _ as _sfc_main$7 } from './LegacyPanel-DJJ9u9fC.mjs';
 import { ref, computed, watch, mergeProps, unref, isRef, withCtx, createVNode, createTextVNode, openBlock, createBlock, Fragment, renderList, toDisplayString, createCommentVNode, useModel, withKeys, withModifiers, mergeModels, useSSRContext } from 'vue';
 import { ssrRenderAttrs, ssrRenderComponent, ssrInterpolate, ssrRenderClass, ssrRenderList, ssrIncludeBooleanAttr, ssrRenderAttr, ssrRenderStyle } from 'vue/server-renderer';
 import { _ as _sfc_main$6 } from './DetailPanel-xEeGelPg.mjs';
@@ -1052,5 +1052,5 @@ _sfc_main.setup = (props, ctx) => {
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };
 
-export { _sfc_main as default };;globalThis.__timing__.logEnd('Load chunks/build/index-DgOwGUEY');
+export { _sfc_main as default };
 //# sourceMappingURL=index-DgOwGUEY.mjs.map
