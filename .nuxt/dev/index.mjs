@@ -2151,16 +2151,16 @@ _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 const assets = {
   "/index.mjs": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"1a230-YGj/zeC8OoOZaP9Z/w/dfq1vOis\"",
-    "mtime": "2026-09-18T10:11:59.666Z",
-    "size": 107056,
+    "etag": "\"1a098-McWh/n7wLdj1gdRcBlDDujVcR0E\"",
+    "mtime": "2026-09-18T11:16:49.895Z",
+    "size": 106648,
     "path": "index.mjs"
   },
   "/index.mjs.map": {
     "type": "application/json",
-    "etag": "\"692e8-CUSQEkQ8c6QheueXF0bWFfKSHxk\"",
-    "mtime": "2026-09-18T10:11:59.666Z",
-    "size": 430824,
+    "etag": "\"692d9-Ed1Lcoe1O3XqR2FCQ67ahC/YXdk\"",
+    "mtime": "2026-09-18T11:16:49.895Z",
+    "size": 430809,
     "path": "index.mjs.map"
   }
 };

@@ -15,4 +15,8 @@ export default defineNuxtRouteMiddleware((to) => {
   if (hasToken && isLoginPage) {
     return navigateTo('/')
   }
+
+  if (hasToken && to.path === '/' && !to.query.project) {
+    return navigateTo('/list')
+  }
 })

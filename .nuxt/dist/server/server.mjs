@@ -3,7 +3,7 @@ import { $fetch as $fetch$1 } from "E:/Project2026/compare-data/node_modules/ofe
 import { baseURL } from "#internal/nuxt/paths";
 import { createHooks } from "E:/Project2026/compare-data/node_modules/hookable/dist/index.mjs";
 import { getContext, executeAsync } from "E:/Project2026/compare-data/node_modules/nuxt/node_modules/unctx/dist/index.mjs";
-import { sanitizeStatusCode, createError as createError$1 } from "E:/Project2026/compare-data/node_modules/h3/dist/index.mjs";
+import { sanitizeStatusCode, createError as createError$1, appendHeader } from "E:/Project2026/compare-data/node_modules/h3/dist/index.mjs";
 import { shouldHydrate, setActivePinia, createPinia } from "pinia";
 import { defu } from "E:/Project2026/compare-data/node_modules/defu/dist/defu.mjs";
 import { START_LOCATION, createMemoryHistory, createRouter, useRoute as useRoute$1, RouterView } from "vue-router";
@@ -21,6 +21,7 @@ if (!("global" in globalThis)) {
 const appLayoutTransition = false;
 const nuxtLinkDefaults = { "componentName": "NuxtLink" };
 const appId = "nuxt-app";
+const crawlLinks = true;
 function getNuxtAppCtx(id = appId) {
   return getContext(id, {
     asyncContext: false
@@ -235,6 +236,9 @@ function defineGetter(obj, key, val) {
 }
 const LayoutMetaSymbol = /* @__PURE__ */ Symbol("layout-meta");
 const PageRouteSymbol = /* @__PURE__ */ Symbol("route");
+function toArray$2(value) {
+  return Array.isArray(value) ? value : [value];
+}
 import.meta.url.replace(/\/app\/.*$/, "/");
 const useRouter = () => {
   return useNuxtApp()?.$router;
@@ -458,7 +462,7 @@ const _routes = [
     name: "list",
     path: "/list",
     meta: __nuxt_page_meta$1 || {},
-    component: () => import("./_nuxt/list-DHOfi4eb.js")
+    component: () => import("./_nuxt/list-Dv3wmrJp.js")
   },
   {
     name: "admin",
@@ -479,7 +483,7 @@ const _routes = [
   {
     name: "report",
     path: "/report",
-    component: () => import("./_nuxt/report-DiNUA6lA.js")
+    component: () => import("./_nuxt/report-DsXlrhCs.js")
   }
 ];
 const _wrapInTransition = (props, children) => {
@@ -593,6 +597,7 @@ const configRouterOptions = {
   hashMode: false,
   scrollBehaviorType: "auto"
 };
+const hashMode = false;
 const routerOptions = {
   ...configRouterOptions,
   ...routerOptions0
@@ -643,7 +648,7 @@ const plugin$1 = /* @__PURE__ */ defineNuxtPlugin({
     let __temp, __restore;
     let routerBase = (/* @__PURE__ */ useRuntimeConfig()).app.baseURL;
     const history = routerOptions.history?.(routerBase) ?? createMemoryHistory(routerBase);
-    const routes = routerOptions.routes ? ([__temp, __restore] = executeAsync(() => routerOptions.routes(_routes)), __temp = await __temp, __restore(), __temp) ?? _routes : _routes;
+    const routes2 = routerOptions.routes ? ([__temp, __restore] = executeAsync(() => routerOptions.routes(_routes)), __temp = await __temp, __restore(), __temp) ?? _routes : _routes;
     let startPosition;
     const router = createRouter({
       ...routerOptions,
@@ -664,7 +669,7 @@ const plugin$1 = /* @__PURE__ */ defineNuxtPlugin({
         }
       },
       history,
-      routes
+      routes: routes2
     });
     nuxtApp.vueApp.use(router);
     const previousRoute = shallowRef(router.currentRoute.value);
@@ -914,6 +919,17 @@ defineComponent({
     };
   }
 });
+function useRequestEvent(nuxtApp) {
+  nuxtApp ||= useNuxtApp();
+  return nuxtApp.ssrContext?.event;
+}
+function prerenderRoutes(path) {
+  if (!import.meta.prerender) {
+    return;
+  }
+  const paths = toArray$2(path);
+  appendHeader(useRequestEvent(), "x-nitro-prerender", paths.map((p) => encodeURIComponent(p)).join(", "));
+}
 const plugin = /* @__PURE__ */ defineNuxtPlugin({
   name: "pinia",
   setup(nuxtApp) {
@@ -940,13 +956,49 @@ const plugin = /* @__PURE__ */ defineNuxtPlugin({
 const components_plugin_z4hgvsiddfKkfXTP6M8M4zG5Cb7sGnDhcryKVM45Di4 = /* @__PURE__ */ defineNuxtPlugin({
   name: "nuxt:global-components"
 });
+let routes;
+const prerender_server_sqIxOBipVr4FbVMA9kqWL0wT8FPop6sKAXLVfifsJzk = /* @__PURE__ */ defineNuxtPlugin(async () => {
+  let __temp, __restore;
+  if (!import.meta.prerender || hashMode) {
+    return;
+  }
+  if (routes && !routes.length) {
+    return;
+  }
+  routes ||= Array.from(processRoutes(([__temp, __restore] = executeAsync(() => routerOptions.routes?.(_routes)), __temp = await __temp, __restore(), __temp) ?? _routes));
+  const batch = routes.splice(0, 10);
+  prerenderRoutes(batch);
+});
+const OPTIONAL_PARAM_RE = /^\/?:.*(?:\?|\(\.\*\)\*)$/;
+function shouldPrerender(path) {
+  return crawlLinks;
+}
+function processRoutes(routes2, currentPath = "/", routesToPrerender = /* @__PURE__ */ new Set()) {
+  for (const route of routes2) {
+    if (OPTIONAL_PARAM_RE.test(route.path) && !route.children?.length && shouldPrerender()) {
+      routesToPrerender.add(currentPath);
+    }
+    if (route.path.includes(":")) {
+      continue;
+    }
+    const fullPath = joinURL(currentPath, route.path);
+    {
+      routesToPrerender.add(fullPath);
+    }
+    if (route.children) {
+      processRoutes(route.children, fullPath, routesToPrerender);
+    }
+  }
+  return routesToPrerender;
+}
 const plugins = [
   payloadPlugin,
   unhead_k2P3m_ZDyjlr2mMYnoDPwavjsDN8hBlk9cFai0bbopU,
   plugin$1,
   revive_payload_server_MVtmlZaQpj6ApFmshWfUWl5PehCebzaBf2NuRMiIbms,
   plugin,
-  components_plugin_z4hgvsiddfKkfXTP6M8M4zG5Cb7sGnDhcryKVM45Di4
+  components_plugin_z4hgvsiddfKkfXTP6M8M4zG5Cb7sGnDhcryKVM45Di4,
+  prerender_server_sqIxOBipVr4FbVMA9kqWL0wT8FPop6sKAXLVfifsJzk
 ];
 const layouts = {
   default: defineAsyncComponent(() => import("./_nuxt/default-DgzoYpWX.js").then((m) => m.default || m))
