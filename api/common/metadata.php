@@ -103,6 +103,7 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
     $hasQuestionnaireName = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'questionnaire_name');
     $hasTablePreface = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'table_preface');
     $hasSearchScopeConfig = metadata_project_search_config_columns_exist($mysqli);
+    $hasColor = metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'color');
     $roundSelect = $hasRoundConfig
         ? 'd.round1_value, d.round2_value, d.completed_round_value'
         : "'1' AS round1_value, '2' AS round2_value, '0' AS completed_round_value";
@@ -111,6 +112,7 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
     $searchScopeSelect = $hasSearchScopeConfig
         ? 'd.search_column, d.search_id1_start, d.search_id1_length, d.search_id2_start, d.search_id2_length, d.search_id2_mode'
         : "NULL AS search_column, 1 AS search_id1_start, 12 AS search_id1_length, 13 AS search_id2_start, NULL AS search_id2_length, 'exact' AS search_id2_mode";
+    $colorSelect = $hasColor ? 'd.color' : "'blue' AS color";
     $compareEnabledWhere = $hasCompareEnabled ? ' AND d.compare_enabled = 1' : '';
 
     $sql = 'SELECT d.database_id,
@@ -127,6 +129,7 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
                    d.status AS database_status,
                    d.is_prepared,
                    d.display_order,
+                   ' . $colorSelect . ',
                    p.project_name,
                    p.compare_ready,
                    COALESCE(t.table_count, 0) AS table_count
@@ -174,6 +177,7 @@ function fetch_admin_compare_projects(mysqli $mysqli): array
             'questionnaire_name' => $questionnaireName,
             'table_preface' => $tablePreface,
             'tablePreface' => $tablePreface,
+            'color' => (string)($row['color'] ?? 'blue'),
             'project_name' => $row['project_name'],
             'raw_database' => $rawDatabase,
             'cmp_database' => $cmpDatabase,

@@ -377,6 +377,7 @@ function admin_database_payload(array $row): array
         'is_prepared' => !empty($row['is_prepared']),
         'prepared_at' => $row['prepared_at'] ?? '',
         'display_order' => (int)($row['display_order'] ?? 0),
+        'color' => $row['color'] ?? 'blue',
         'table_count' => (int)($row['table_count'] ?? 0),
         'column_count' => (int)($row['column_count'] ?? 0),
         'hidden_column_count' => (int)($row['column_count'] ?? 0),

@@ -212,6 +212,7 @@ try {
     $description = admin_nullable_string($body['description'] ?? ($before['description'] ?? ''), 5000);
     $status = admin_status_value($body['status'] ?? ($before['status'] ?? ''), ['draft', 'ready', 'prepared', 'disabled'], 'draft');
     $displayOrder = admin_int_value($body['display_order'] ?? ($before['display_order'] ?? 0));
+    $color = admin_status_value($body['color'] ?? ($before['color'] ?? 'blue'), ['green', 'blue', 'red', 'yellow'], 'blue');
     $username = $admin['username'];
 
     $mysqli->begin_transaction();
@@ -328,6 +329,15 @@ try {
         $sampleStmt = $mysqli->prepare($sampleSql);
         $sampleStmt->bind_param('si', $sampleIdsSql, $databaseId);
         $sampleStmt->execute();
+    }
+
+    if (metadata_column_exists($mysqli, CMP_CORE_DB, 'project_databases', 'color')) {
+        $colorSql = 'UPDATE ' . admin_config_table('project_databases') . '
+                     SET color = ?
+                     WHERE database_id = ?';
+        $colorStmt = $mysqli->prepare($colorSql);
+        $colorStmt->bind_param('si', $color, $databaseId);
+        $colorStmt->execute();
     }
 
     if (metadata_project_search_config_columns_exist($mysqli)) {

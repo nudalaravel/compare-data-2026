@@ -230,6 +230,15 @@
             Display Order
             <input v-model.number="databaseForm.display_order" type="number" :disabled="!canUseDatabaseTools">
           </label>
+          <label>
+            สี (จัดกลุ่มปุ่มเลือกฐานข้อมูล)
+            <select v-model="databaseForm.color" :disabled="!canUseDatabaseTools">
+              <option value="green">เขียว</option>
+              <option value="blue">น้ำเงิน</option>
+              <option value="red">แดง</option>
+              <option value="yellow">เหลือง</option>
+            </select>
+          </label>
           <label class="full">
             Description
             <textarea v-model="databaseForm.description" :disabled="!canUseDatabaseTools" rows="2"></textarea>
@@ -271,6 +280,7 @@
                 <th>Enabled</th>
                 <th>Status</th>
                 <th>Tables</th>
+                <th>สี</th>
                 <th>จัดการ</th>
               </tr>
             </thead>
@@ -285,12 +295,13 @@
                 <td>{{ database.compare_enabled ? 'on' : 'off' }}</td>
                 <td>{{ database.is_prepared ? 'prepared' : database.status }}</td>
                 <td>{{ database.table_count }}</td>
+                <td><span :class="['color-swatch', database.color || 'blue']" :title="database.color || 'blue'"></span></td>
                 <td>
                   <button type="button" @click="selectDatabase(database)">เลือก</button>
                 </td>
               </tr>
               <tr v-if="!adminLoading && !adminDatabases.length">
-                <td colspan="10">ยังไม่มีฐานข้อมูลใน Project นี้</td>
+                <td colspan="11">ยังไม่มีฐานข้อมูลใน Project นี้</td>
               </tr>
             </tbody>
           </table>
@@ -602,7 +613,8 @@ const databaseForm = reactive({
   compare_enabled: true,
   description: '',
   status: 'draft',
-  display_order: 0
+  display_order: 0,
+  color: 'blue'
 })
 
 const selectedProject = computed(() => surveySystems.value.find((project) => project.project_code === selectedProjectCode.value) || null)
@@ -976,7 +988,8 @@ function resetDatabaseForm() {
     compare_enabled: true,
     description: '',
     status: 'draft',
-    display_order: 0
+    display_order: 0,
+    color: 'blue'
   })
 }
 
@@ -1003,7 +1016,8 @@ function fillDatabaseForm(database) {
     compare_enabled: database.compare_enabled ?? true,
     description: database.description || '',
     status: database.status,
-    display_order: database.display_order || 0
+    display_order: database.display_order || 0,
+    color: database.color || 'blue'
   })
 }
 
@@ -1901,6 +1915,30 @@ function parseIdentifierList(value) {
   background: #f5f7fa;
   color: #526071;
   font-size: 12px;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.color-swatch.green {
+  background: var(--green);
+}
+
+.color-swatch.blue {
+  background: var(--blue);
+}
+
+.color-swatch.red {
+  background: var(--red);
+}
+
+.color-swatch.yellow {
+  background: var(--yellow);
 }
 
 .mini-status {

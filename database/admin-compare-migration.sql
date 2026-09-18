@@ -116,8 +116,11 @@ CALL add_admin_config_column('project_databases', 'search_id1_length', 'INT NOT 
 CALL add_admin_config_column('project_databases', 'search_id2_start', 'INT NOT NULL DEFAULT 13 COMMENT ''1-based SUBSTRING start for searchId2; should be after searchId1 end'' AFTER search_id1_length');
 CALL add_admin_config_column('project_databases', 'search_id2_length', 'INT NULL COMMENT ''SUBSTRING length for searchId2. NULL means to the end of the id.'' AFTER search_id2_start');
 CALL add_admin_config_column('project_databases', 'search_id2_mode', 'ENUM(''exact'',''prefix'') NOT NULL DEFAULT ''exact'' COMMENT ''Search mode when searchId2 is filled'' AFTER search_id2_length');
-
 DROP PROCEDURE IF EXISTS add_admin_config_column;
+
+ALTER TABLE project_databases
+  ADD COLUMN IF NOT EXISTS color ENUM('green','blue','red','yellow') NOT NULL DEFAULT 'blue'
+    COMMENT 'สีปุ่มเลือกฐานข้อมูล ใช้จัดกลุ่มด้วยสายตา' AFTER display_order;
 
 -- ตาราง project_tables
 -- หน้าที่: เก็บรายการตารางที่ scan ได้หรือเลือกเปิด Compare ในแต่ละฐานข้อมูล
