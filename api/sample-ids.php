@@ -169,6 +169,8 @@ try {
     $customSql = trim((string)($project['sample_ids_sql'] ?? ''));
     if ($customSql !== '') {
         $normalizedCustomSql = trim(preg_replace('/\s+/', ' ', $customSql) ?? '');
+        // ตัด ; ท้ายสุดออกก่อนเช็ค เพราะเป็นนิสัยเวลาพิมพ์ SQL ทั่วไป ไม่ใช่ multi-statement
+        $normalizedCustomSql = rtrim($normalizedCustomSql, "; \t\n\r\0\x0B");
         if ($normalizedCustomSql === ''
             || strpos($normalizedCustomSql, ';') !== false
             || !preg_match('/^\(?\s*SELECT\b/i', $normalizedCustomSql)
@@ -188,7 +190,7 @@ try {
         $sql = "SELECT CAST(sample_source.project_code AS CHAR) AS project_code,
                        CAST(sample_source.database_code AS CHAR) AS database_code,
                        CAST(sample_source.id AS CHAR) AS id
-                FROM ({$customSql}) sample_source
+                FROM ({$normalizedCustomSql}) sample_source
                 {$whereSql}
                 ORDER BY id{$limitSql}";
         if ($debugEnabled) {
